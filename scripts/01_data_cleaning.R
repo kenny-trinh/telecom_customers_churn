@@ -30,6 +30,10 @@ v.na_count <- colSums(is.na(d.telecom_customer_churn))
 # Print the number of missing values
 print(v.na_count)
 
+## Drop unnecessary columns such as customerID and dependents
+d.telecom_customer_churn <- d.telecom_customer_churn %>%
+  select(-customerID, -Dependents)
+
 ## ----SaveCleanedData---------------------------------------------------------
 # Save the cleaned data to a CSV file
 write_csv(d.telecom_customer_churn, file.path(
