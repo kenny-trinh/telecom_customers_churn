@@ -226,16 +226,15 @@ data$TotalCharges_centered <- data$TotalCharges- mean(data$TotalCharges)
 cat("Reference level for 'Contract':", levels(data$Contract)[1], "\n")
 cat("Reference level for 'InternetService':", levels(data$InternetService)[1], "\n")
 gam_smoothing_spline <- gam(Churn ~ SeniorCitizen + Contract + PaymentMethod + 
-                             s(tenure) + s(TotalCharges_centered) + tenure +  TotalCharges +
+                             s(tenure) + s(TotalCharges_centered) + 
                              InternetService + OnlineSecurity + TechSupport + 
                              PaperlessBilling + MultipleLines, 
-                             family = binomial, data = data)
-
+                             family = binomial, data = data, select=TRUE)
 summary(gam_smoothing_spline)
 ```
 
 
-## Smooth terms for tenure and TotalCharges_centered are highly significant (p < 0.001), indicating non-linear effects.
+## edf shows that mooth terms for tenure and TotalCharges_centered are highly significant (p < 0.001), indicating non-linear effects. Relationship is non-linear but not overly complex.
 
 # Let's compare these models
 
@@ -276,7 +275,7 @@ anova(glm_model_interaction, gam_smoothing_spline, test = "Chisq")
 ```{r}
 AIC(glm_model_interaction, gam_smoothing_spline)
 ```
-## GAM has a slightly lower AIC (5810.983) than GLM (5828.536), further supporting that GAM provides a better fit to the data.
+## GAM has a slightly lower AIC (5809.896) than GLM (5828.536), further supporting that GAM provides a better fit to the data.
 
 
 
