@@ -10,23 +10,20 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```
 
+# First let's prepare the data for the visualization and modelling
 
 ```{r}
 
 # Load required libraries
 library(ggplot2)
+library(dplyr)
+library(mgcv)
+library(pROC)
+library(caret)
 
 # Load the data
 data <- read.csv("telecom_customers_churn_cleaned.csv")
 data$Churn <- ifelse(data$Churn == "Yes", 1, 0)
-#str(data)
-#colSums(is.na(data))
-```
-
-
-# GLM
-
-```{r}
 # Ensure variables are factors
 data$Contract <- as.factor(data$Contract)
 data$PaymentMethod <- as.factor(data$PaymentMethod)
@@ -35,6 +32,114 @@ data$TotalCharges <- log(data$TotalCharges)
 data$MonthlyCharges <- log(data$MonthlyCharges)
 data$InternetService <- as.factor(data$InternetService)
 
+#str(data)
+#colSums(is.na(data))
+```
+
+
+
+# Let's plot some results to understand the data better
+Q
+
+## Plot: Tenure vs. TotalCharges by Churn
+
+```{r}
+# Ensure necessary libraries are installed
+if(!require(ggplot2)) install.packages("ggplot2")
+
+# Load the library
+library(ggplot2)
+
+
+ggplot(data, aes(x = tenure, y = TotalCharges, color = Churn)) +
+  geom_point(alpha = 0.6) +
+  labs(
+    title = "Relationship Between Tenure and Total Charges by Churn",
+    x = "Tenure (Months)",
+    y = "Total Charges"
+  ) +
+  scale_color_manual(values = c("blue", "red"), labels = c("No Churn", "Churn")) +
+  theme_minimal()
+```
+
+## Higher tenure and total charges are associated with lower churn, reinforcing loyalty among long-term customers with higher spending.
+
+## Plot: Tenure by Contract Type
+
+```{r}
+
+ggplot(data, aes(x = Contract, y = tenure, fill = Contract)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(
+    title = "Tenure by Contract Type",
+    x = "Contract Type",
+    y = "Tenure (Months)"
+  ) +
+  scale_fill_manual(values = c("blue", "orange", "purple")) +
+  theme_minimal()
+```
+
+
+## Longer contract durations (e.g., two years) correlate with higher customer retention, likely due to lower churn incentives.
+
+
+## Plot: Churn by Payment Method
+
+
+```{r}
+
+ggplot(data, aes(x = PaymentMethod, fill = Churn)) +
+  geom_bar(position = "fill", alpha = 0.8) +
+  labs(
+    title = "Proportion of Churn by Payment Method",
+    x = "Payment Method",
+    y = "Proportion"
+  ) +
+  scale_fill_manual(values = c("blue", "red"), labels = c("No Churn", "Churn")) +
+  theme_minimal() +
+  coord_flip()
+```
+
+## Customers using electronic checks exhibit the highest churn proportion, suggesting potential dissatisfaction or difficulties with this payment method.
+
+## Plot: Churn Proportion by Internet Service
+
+```{r}
+# Load necessary libraries
+if (!require(ggplot2)) install.packages("ggplot2")
+if (!require(dplyr)) install.packages("dplyr")
+
+library(ggplot2)
+library(dplyr)
+
+# Create a dataset for proportions and counts
+proportion_df <- data %>%
+  group_by(InternetService, Churn) %>%
+  summarise(Count = n()) %>%
+  mutate(Total = sum(Count),
+         Proportion = Count / Total)
+
+# Plot the bar chart with counts displayed
+ggplot(proportion_df, aes(x = InternetService, y = Proportion, fill = as.factor(Churn))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = Count), position = position_dodge(width = 0.9), vjust = -0.2, size = 3) +
+  labs(
+    title = "Proportion of Churn by Internet Service with Counts",
+    x = "Internet Service Type",
+    y = "Proportion",
+    fill = "Churn"
+  ) +
+  scale_fill_manual(values = c("blue", "red"), labels = c("No", "Yes")) +
+  theme_minimal()
+```
+
+## Fiber optic users have significantly higher churn rates than DSL or users without internet service, indicating dissatisfaction with fiber optic services.
+
+## Let's create models of GLM and GAM to see if they catch these relations and how will they perform compared to each other.
+
+# GLM
+
+```{r}
 
 # Set 'No service' as the reference level for InternetService
 data$InternetService <- relevel(data$InternetService, ref = "No")
@@ -172,97 +277,6 @@ anova(glm_model_interaction, gam_smoothing_spline, test = "Chisq")
 AIC(glm_model_interaction, gam_smoothing_spline)
 ```
 ## GAM has a slightly lower AIC (5810.983) than GLM (5828.536), further supporting that GAM provides a better fit to the data.
-
-
-# Let's plot some results
-
-
-## Plot: Tenure vs. TotalCharges by Churn
-
-```{r}
-# Ensure necessary libraries are installed
-if(!require(ggplot2)) install.packages("ggplot2")
-
-# Load the library
-library(ggplot2)
-
-
-ggplot(data, aes(x = tenure, y = TotalCharges, color = Churn)) +
-  geom_point(alpha = 0.6) +
-  labs(
-    title = "Relationship Between Tenure and Total Charges by Churn",
-    x = "Tenure (Months)",
-    y = "Total Charges"
-  ) +
-  scale_color_manual(values = c("blue", "red"), labels = c("No Churn", "Churn")) +
-  theme_minimal()
-```
-
-
-## Plot: Tenure by Contract Type
-
-```{r}
-
-ggplot(data, aes(x = Contract, y = tenure, fill = Contract)) +
-  geom_boxplot(alpha = 0.7) +
-  labs(
-    title = "Tenure by Contract Type",
-    x = "Contract Type",
-    y = "Tenure (Months)"
-  ) +
-  scale_fill_manual(values = c("blue", "orange", "purple")) +
-  theme_minimal()
-```
-
-
-## Plot: Churn by Payment Method
-
-
-```{r}
-
-ggplot(data, aes(x = PaymentMethod, fill = Churn)) +
-  geom_bar(position = "fill", alpha = 0.8) +
-  labs(
-    title = "Proportion of Churn by Payment Method",
-    x = "Payment Method",
-    y = "Proportion"
-  ) +
-  scale_fill_manual(values = c("blue", "red"), labels = c("No Churn", "Churn")) +
-  theme_minimal() +
-  coord_flip()
-```
-
-
-## Plot: Churn Proportion by Internet Service
-
-```{r}
-# Load necessary libraries
-if (!require(ggplot2)) install.packages("ggplot2")
-if (!require(dplyr)) install.packages("dplyr")
-
-library(ggplot2)
-library(dplyr)
-
-# Create a dataset for proportions and counts
-proportion_df <- data %>%
-  group_by(InternetService, Churn) %>%
-  summarise(Count = n()) %>%
-  mutate(Total = sum(Count),
-         Proportion = Count / Total)
-
-# Plot the bar chart with counts displayed
-ggplot(proportion_df, aes(x = InternetService, y = Proportion, fill = as.factor(Churn))) +
-  geom_bar(stat = "identity", position = "dodge") +
-  geom_text(aes(label = Count), position = position_dodge(width = 0.9), vjust = -0.2, size = 3) +
-  labs(
-    title = "Proportion of Churn by Internet Service with Counts",
-    x = "Internet Service Type",
-    y = "Proportion",
-    fill = "Churn"
-  ) +
-  scale_fill_manual(values = c("blue", "red"), labels = c("No", "Yes")) +
-  theme_minimal()
-```
 
 
 
