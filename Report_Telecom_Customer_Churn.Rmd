@@ -1448,7 +1448,7 @@ The Neural Network model demonstrates robust capabilities in identifying churn-p
 
 
 
-# Support Vector Machine (SVM)
+# Support Vector Machine (SVM) (Kenny)
 
 ## Model Performance Metrics
 
