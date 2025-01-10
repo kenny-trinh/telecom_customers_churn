@@ -1,0 +1,286 @@
+---
+title: "GLM AND GAM"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+```
+
+# First let's prepare the data for the visualization and modelling
+
+```{r}
+
+# Load required libraries
+library(ggplot2)
+library(dplyr)
+library(mgcv)
+library(pROC)
+library(caret)
+
+# Load the data
+data <- read.csv("telecom_customers_churn_cleaned.csv")
+data$Churn <- ifelse(data$Churn == "Yes", 1, 0)
+# Ensure variables are factors
+data$Contract <- as.factor(data$Contract)
+data$PaymentMethod <- as.factor(data$PaymentMethod)
+data$Churn <- as.factor(data$Churn)
+data$TotalCharges <- log(data$TotalCharges)
+data$MonthlyCharges <- log(data$MonthlyCharges)
+data$InternetService <- as.factor(data$InternetService)
+
+#str(data)
+#colSums(is.na(data))
+```
+
+
+
+# Let's plot some results to understand the data better
+Q
+
+## Plot: Tenure vs. TotalCharges by Churn
+
+```{r}
+# Ensure necessary libraries are installed
+if(!require(ggplot2)) install.packages("ggplot2")
+
+# Load the library
+library(ggplot2)
+
+
+ggplot(data, aes(x = tenure, y = TotalCharges, color = Churn)) +
+  geom_point(alpha = 0.6) +
+  labs(
+    title = "Relationship Between Tenure and Total Charges by Churn",
+    x = "Tenure (Months)",
+    y = "Total Charges"
+  ) +
+  scale_color_manual(values = c("blue", "red"), labels = c("No Churn", "Churn")) +
+  theme_minimal()
+```
+
+## Higher tenure and total charges are associated with lower churn, reinforcing loyalty among long-term customers with higher spending.
+
+## Plot: Tenure by Contract Type
+
+```{r}
+
+ggplot(data, aes(x = Contract, y = tenure, fill = Contract)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(
+    title = "Tenure by Contract Type",
+    x = "Contract Type",
+    y = "Tenure (Months)"
+  ) +
+  scale_fill_manual(values = c("blue", "orange", "purple")) +
+  theme_minimal()
+```
+
+
+## Longer contract durations (e.g., two years) correlate with higher customer retention, likely due to lower churn incentives.
+
+
+## Plot: Churn by Payment Method
+
+
+```{r}
+
+ggplot(data, aes(x = PaymentMethod, fill = Churn)) +
+  geom_bar(position = "fill", alpha = 0.8) +
+  labs(
+    title = "Proportion of Churn by Payment Method",
+    x = "Payment Method",
+    y = "Proportion"
+  ) +
+  scale_fill_manual(values = c("blue", "red"), labels = c("No Churn", "Churn")) +
+  theme_minimal() +
+  coord_flip()
+```
+
+## Customers using electronic checks exhibit the highest churn proportion, suggesting potential dissatisfaction or difficulties with this payment method.
+
+## Plot: Churn Proportion by Internet Service
+
+```{r}
+# Load necessary libraries
+if (!require(ggplot2)) install.packages("ggplot2")
+if (!require(dplyr)) install.packages("dplyr")
+
+library(ggplot2)
+library(dplyr)
+
+# Create a dataset for proportions and counts
+proportion_df <- data %>%
+  group_by(InternetService, Churn) %>%
+  summarise(Count = n()) %>%
+  mutate(Total = sum(Count),
+         Proportion = Count / Total)
+
+# Plot the bar chart with counts displayed
+ggplot(proportion_df, aes(x = InternetService, y = Proportion, fill = as.factor(Churn))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = Count), position = position_dodge(width = 0.9), vjust = -0.2, size = 3) +
+  labs(
+    title = "Proportion of Churn by Internet Service with Counts",
+    x = "Internet Service Type",
+    y = "Proportion",
+    fill = "Churn"
+  ) +
+  scale_fill_manual(values = c("blue", "red"), labels = c("No", "Yes")) +
+  theme_minimal()
+```
+
+## Fiber optic users have significantly higher churn rates than DSL or users without internet service, indicating dissatisfaction with fiber optic services.
+
+## Let's create models of GLM and GAM to see if they catch these relations and how will they perform compared to each other.
+
+# GLM
+
+```{r}
+
+# Set 'No service' as the reference level for InternetService
+data$InternetService <- relevel(data$InternetService, ref = "No")
+# Confirm reference level
+cat("Reference level for 'Contract':", levels(data$Contract)[1], "\n")
+cat("Reference level for 'InternetService':", levels(data$InternetService)[1], "\n")
+# Fit the GLM with interaction terms
+glm_model_interaction <- glm(Churn ~ SeniorCitizen + Contract + PaymentMethod + 
+                             tenure + TotalCharges + 
+                             InternetService + OnlineSecurity + TechSupport + 
+                             PaperlessBilling + MultipleLines, 
+                             family = binomial, data = data)
+# Check the summary
+summary(glm_model_interaction)
+
+```
+## So let's interpret the results;
+
+### Fiber optic users are more likely to churn, while DSL users are less likely to churn compared to no internet service customers.
+
+### Electronic check users are at higher risk of churn.
+
+### Customers with higher tenure and total charges are less likely to churn.
+
+### Longer contracts significantly reduce churn risk.
+
+### Senior citizens are more likely to churn
+
+### Electronic check users are more likely to churn.
+
+### Online security increases churn
+
+### Tech support significantly increases churn risk.
+
+### Longer contracts significantly reduce churn.
+
+
+# Did the model overfit?
+
+```{r}
+library(pROC)
+# Split data into training and test sets
+set.seed(123)
+train_indices <- sample(1:nrow(data), 0.7 * nrow(data))
+train_data <- data[train_indices, ]
+test_data <- data[-train_indices, ]
+
+# Predict on training and test data
+train_preds <- predict(glm_model_interaction, train_data, type = "response")
+test_preds <- predict(glm_model_interaction, test_data, type = "response")
+
+# Calculate performance metrics
+library(pROC)
+train_auc <- roc(train_data$Churn, train_preds)$auc
+test_auc <- roc(test_data$Churn, test_preds)$auc
+
+cat("Train AUC:", train_auc, "\n")
+cat("Test AUC:", test_auc, "\n")
+```
+### The Train AUC (0.847) and Test AUC (0.854) are very close, indicating that the model performs consistently on both the training and test datasets. This suggests good generalization without overfitting to the training data. 
+
+```{r}
+library(caret)
+
+# Set up cross-validation
+control <- trainControl(method = "cv", number = 10) # 10-fold cross-validation
+
+# Train the model
+cv_model <- train(Churn ~ SeniorCitizen + Contract + PaymentMethod + 
+                  tenure + MonthlyCharges + TotalCharges + 
+                  InternetService + InternetService:MonthlyCharges, 
+                  data = data, method = "glm", family = "binomial", trControl = control)
+
+# Check cross-validation results
+print(cv_model)
+```
+### If there were significant overfitting, we would expect a much larger difference between training and cross-validation accuracy. So it seems there is no overfit
+
+# GAM WITH NON-LINEAR PATTERNS
+
+```{r}
+library(mgcv)
+data$TotalCharges_centered <- data$TotalCharges- mean(data$TotalCharges)
+cat("Reference level for 'Contract':", levels(data$Contract)[1], "\n")
+cat("Reference level for 'InternetService':", levels(data$InternetService)[1], "\n")
+gam_smoothing_spline <- gam(Churn ~ SeniorCitizen + Contract + PaymentMethod + 
+                             s(tenure) + s(TotalCharges_centered) + 
+                             InternetService + OnlineSecurity + TechSupport + 
+                             PaperlessBilling + MultipleLines, 
+                             family = binomial, data = data, select=TRUE)
+summary(gam_smoothing_spline)
+```
+
+
+## edf shows that mooth terms for tenure and TotalCharges_centered are highly significant (p < 0.001), indicating non-linear effects. Relationship is non-linear but not overly complex.
+
+# Let's compare these models
+
+# ROC COMPARISON
+
+```{r}
+
+library(pROC)
+
+# Predictions for glm_model
+pred1 <- predict(glm_model_interaction, type = "response")
+roc1 <- roc(data$Churn, pred1)
+
+pred2 <- predict(gam_smoothing_spline, type = "response")
+roc2 <- roc(data$Churn, pred2)
+
+# Plot ROC curves
+plot(roc1, col = "blue", lwd = 2, main = "ROC Curve Comparison")
+lines(roc2, col = "red", lwd = 2)
+legend("bottomright", legend = c("glm_model_interaction", "gam_smoothing_spline"),
+       col = c("blue", "red"), lwd = 2)
+
+auc1 <- auc(roc1)
+auc2 <- auc(roc2)
+cat("AUC of Model glm_model_interaction:", auc1, "\n")
+cat("AUC of Model gam_smoothing_spline:", auc2, "\n")
+```
+
+
+## Both models perform similarly in terms of AUC, but GAM slightly edges out GLM in predictive performance.
+
+
+```{r}
+anova(glm_model_interaction, gam_smoothing_spline, test = "Chisq")
+```
+## GAM explains more variance than GLM.
+
+```{r}
+AIC(glm_model_interaction, gam_smoothing_spline)
+```
+## GAM has a slightly lower AIC (5809.896) than GLM (5828.536), further supporting that GAM provides a better fit to the data.
+
+
+
+# Conclusion
+
+Both models performed well in predicting churn, with GAM offering additional flexibility to capture non-linear relationships. While the non-linearity in some variables, like tenure, was not significant, GAM successfully identified a meaningful non-linear relationship with TotalCharges. The results highlight that customers are more likely to churn if they use fiber optic internet, pay via electronic checks, lack online security or tech support, or are senior citizens. Conversely, churn risk is lower for DSL users, those with higher tenure and total charges, and customers on longer-term contracts
+
+

@@ -3,7 +3,14 @@
 # List of required packages
 required_packages <- c(
   "readr",
-  'dplyr'
+  'dplyr',
+  'tidyverse',
+  'caret',
+  'nnet',
+  'pROC',
+  'ggplot2',
+  'RSNNS',
+  'e1071'
 )
 
 # Function to check and install missing packages
