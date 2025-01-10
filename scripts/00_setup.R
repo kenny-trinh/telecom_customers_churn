@@ -11,7 +11,12 @@ required_packages <- c(
   'ggplot2',
   'RSNNS',
   'e1071',
-  'mgcv'
+  'mgcv',
+  'gridExtra',
+  "tinytex",
+  "stringr",
+  "tidyr",
+  "xfun"
 )
 
 # Function to check and install missing packages
