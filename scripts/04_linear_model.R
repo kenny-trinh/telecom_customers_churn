@@ -1,27 +1,54 @@
+# Step 1: Initial linear model with all relevant predictors
+lm_initial <- lm(log(MonthlyCharges) ~ 
+                   tenure + 
+                   InternetService + 
+                   Contract + 
+                   StreamingTV + 
+                   StreamingMovies +
+                   OnlineSecurity +
+                   OnlineBackup +
+                   DeviceProtection +
+                   TechSupport +
+                   PhoneService,
+                 data = d.cleaned_telecom_customer_churn)
 
-# First simple model
-lm.telecom.1 <- lm(MonthlyCharges ~ tenure, data = d.cleaned_telecom_customer_churn)
+# Step 2: Check model diagnostics
+par(mfrow = c(2,2))
+plot(lm_initial)
 
-# Look at summary
-summary(lm.telecom.1)
-
-# Visualize the relationship
-plot(MonthlyCharges ~ tenure, data = d.cleaned_telecom_customer_churn,
-     main = "Monthly Charges vs Tenure",
-     xlab = "Tenure (months)",
-     ylab = "Monthly Charges ($)")
-abline(lm.telecom.1, col = "red")
+# Step 3: Get model summary
+summary(lm_initial)
 
 
-#linear model with other predictors. 
-lm.telecom.2 <- lm(MonthlyCharges ~ tenure + Contract + InternetService, data = d.cleaned_telecom_customer_churn)
-summary(lm.telecom.2)
+# Effect of Internet Service with smoother
+ggplot(d.cleaned_telecom_customer_churn, 
+       aes(x = tenure, y = log(MonthlyCharges), color = InternetService)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = TRUE) +
+  theme_minimal() +
+  labs(title = "Log Monthly Charges vs Tenure by Internet Service",
+       x = "Tenure (months)",
+       y = "Log Monthly Charges")
 
 
-#linear model with interactions
-lm.telecom.3 <- lm(MonthlyCharges ~ tenure * Contract + InternetService, data = d.cleaned_telecom_customer_churn)
-summary(lm.telecom.3)
+# Effect of Contract with smoother
+ggplot(d.cleaned_telecom_customer_churn, 
+       aes(x = tenure, y = log(MonthlyCharges), color = Contract)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", se = TRUE) +
+  theme_minimal() +
+  labs(title = "Log Monthly Charges vs Tenure by Contract",
+       x = "Tenure (months)",
+       y = "Log Monthly Charges")
 
-# Perform ANOVA test between models
-anova(lm.telecom.1, lm.telecom.2, lm.telecom.3)
+# Enhanced model with interactions
+lm_enhanced <- lm(log(MonthlyCharges) ~ 
+                    tenure * InternetService +    # Add interaction with tenure
+                    tenure * Contract +           # Add interaction with contract
+                    StreamingTV + StreamingMovies + 
+                    OnlineSecurity + OnlineBackup + 
+                    DeviceProtection + TechSupport + 
+                    PhoneService,
+                  data = d.cleaned_telecom_customer_churn)
 
+summary(lm_enhanced)

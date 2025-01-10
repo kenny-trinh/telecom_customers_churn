@@ -1,26 +1,59 @@
+library(ggplot2)
+ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure)) +
+  geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
+  labs(title = "Distribution of Tenure",
+       x = "Tenure (Months)",
+       y = "Frequency") +
+  theme_minimal()
 
-# Model with services_count as response
-glm.poisson.services <- glm(services_count ~ tenure + Contract + InternetService + MonthlyCharges,
-                            family = poisson,
-                            data = d.cleaned_telecom_customer_churn)
+# poisson model. 
+# Fit Poisson regression
+glm_tenure <- glm(tenure ~ InternetService + Contract + PaymentMethod +
+                    StreamingTV + StreamingMovies + SeniorCitizen +
+                    Partner + MonthlyCharges + TotalCharges,
+                  family = poisson(link = "log"), data = d.cleaned_telecom_customer_churn)
 
-# Look at summary
-summary(glm.poisson.services)
-
-# Model predicting tenure
-glm.poisson.tenure <- glm(tenure ~ MonthlyCharges + Contract + InternetService,
-                          family = poisson,
-                          data = d.cleaned_telecom_customer_churn)
-
-summary(glm.poisson.tenure)
+summary(glm_tenure)
 
 
-# Model predicting tencure with interaction 
-glm_tenure_interaction <- glm(tenure ~ MonthlyCharges * Contract + InternetService,
-                              family = poisson,
-                              data = d.cleaned_telecom_customer_churn)
+# Boxplot for Contract
+ggplot(d.cleaned_telecom_customer_churn, aes(x = Contract, y = tenure)) +
+  geom_boxplot(fill = "lightblue", outlier.color = "red") +
+  labs(title = "Tenure vs Contract Type", x = "Contract Type", y = "Tenure (Months)") +
+  theme_minimal()
+
+# Boxplot for Internet Service
+ggplot(d.cleaned_telecom_customer_churn, aes(x = InternetService, y = tenure)) +
+  geom_boxplot(fill = "lightgreen", outlier.color = "red") +
+  labs(title = "Tenure vs Internet Service", x = "Internet Service Type", y = "Tenure (Months)") +
+  theme_minimal()
+
+glm_quasi <- glm(tenure ~ InternetService * Contract + PaymentMethod * Contract +
+                   StreamingTV + StreamingMovies + SeniorCitizen + Partner +
+                   MonthlyCharges + TotalCharges,
+                 family = quasipoisson(link = "log"),
+                 data = d.cleaned_telecom_customer_churn)
+summary(glm_quasi)
+
+
+
+
+
+
+
+
+# Fit Poisson regression with interactions
+glm_tenure_interaction <- glm(
+  tenure ~ InternetService * Contract +
+    PaymentMethod * Contract +
+    StreamingTV + StreamingMovies +
+    SeniorCitizen + Partner +
+    MonthlyCharges + TotalCharges,
+  family = poisson(link = "log"),
+  data = d.cleaned_telecom_customer_churn
+)
+
+# Summary of the updated model
 summary(glm_tenure_interaction)
 
-#comparing the models
-anova(glm.poisson.tenure, glm_tenure_interaction, test = "Chisq")
 
