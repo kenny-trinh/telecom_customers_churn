@@ -1,0 +1,196 @@
+---
+title: "Report Telecom Customer Churn"
+author:
+  - "Kenny Trinh"
+  - "Sabin Pun"
+  - "Sarp Koc"
+date: "2025-01-10"
+output:
+  pdf_document:
+    toc: true
+    fig_caption: true
+    number_sections: true
+    highlight: pygments
+header-includes:
+  - \pagenumbering{gobble}
+---
+
+\newpage
+\pagenumbering{arabic}
+
+```{r Setup, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.width = 8, fig.height = 3, fig.align = "center" )
+
+# List of required packages
+required_packages <- c(
+  "readr",
+  'dplyr',
+  'tidyverse',
+  'caret',
+  'nnet',
+  'pROC',
+  'ggplot2',
+  'RSNNS',
+  'e1071'
+)
+
+# Function to check and install missing packages
+install_if_missing <- function(packages) {
+  missing_packages <- packages[!packages %in% installed.packages()[, "Package"]]
+  if (length(missing_packages) > 0) {
+    install.packages(missing_packages)
+  }
+}
+
+# Install any missing packages
+install_if_missing(required_packages)
+
+# Load all packages
+lapply(required_packages, library, character.only = TRUE)
+
+# Define data paths
+data_dir <- "data/"
+raw_data_dir <- paste0(data_dir, "raw/")
+cleaned_data_dir <- paste0(data_dir, "cleaned/")
+output_dir <- "output/"
+
+# Create data directories if they don't exist
+dir.create(data_dir, showWarnings = FALSE)
+dir.create(raw_data_dir, showWarnings = FALSE)
+dir.create(cleaned_data_dir, showWarnings = FALSE)
+
+# Create output directory if it doesn't exist
+dir.create(output_dir, showWarnings = FALSE)
+```
+
+# Neural Network (NN)
+
+## Finding the most optimal Neural Network Configuration
+
+```{r NN-FindOptimalConfiguration, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+# Load necessary libraries
+library(caret)
+library(nnet)
+library(pROC)
+library(ggplot2)
+library(dplyr)
+library(RSNNS)
+
+# Load the cleaned dataset
+data <- read_csv(
+  file.path(cleaned_data_dir, "telecom_customers_churn_cleaned.csv")
+)
+
+# Convert categorical variables to factors
+data$Churn <- as.factor(ifelse(data$Churn == "Yes", 1, 0))
+
+# Check and convert other categorical variables
+data$gender <- as.factor(data$gender)
+data$Partner <- as.factor(data$Partner)
+data$PhoneService <- as.factor(data$PhoneService)
+data$MultipleLines <- as.factor(data$MultipleLines)
+data$InternetService <- as.factor(data$InternetService)
+data$OnlineSecurity <- as.factor(data$OnlineSecurity)
+data$OnlineBackup <- as.factor(data$OnlineBackup)
+data$DeviceProtection <- as.factor(data$DeviceProtection)
+data$TechSupport <- as.factor(data$TechSupport)
+data$StreamingTV <- as.factor(data$StreamingTV)
+data$StreamingMovies <- as.factor(data$StreamingMovies)
+data$Contract <- as.factor(data$Contract)
+data$PaperlessBilling <- as.factor(data$PaperlessBilling)
+data$PaymentMethod <- as.factor(data$PaymentMethod)
+
+# Convert TotalCharges to numeric (handle any non-numeric issues)
+data$TotalCharges <- as.numeric(as.character(data$TotalCharges))
+
+data <- na.omit(data)  # Remove rows with missing values
+
+# Split the data into training and testing sets
+set.seed(42)
+trainIndex <- createDataPartition(data$Churn, p = 0.8, list = FALSE)
+trainData <- data[trainIndex, ]
+testData <- data[-trainIndex, ]
+
+# Preprocess the data: scale numeric columns
+preProc <- preProcess(trainData[, c("tenure", "MonthlyCharges",
+                                    "TotalCharges")],
+                      method = c("center", "scale"))
+trainData[, c("tenure", "MonthlyCharges", "TotalCharges")] <- predict(
+  preProc, trainData[, c("tenure", "MonthlyCharges", "TotalCharges")])
+testData[, c("tenure", "MonthlyCharges", "TotalCharges")] <- predict(
+  preProc, testData[, c("tenure", "MonthlyCharges", "TotalCharges")])
+
+# Train the Neural Network
+nn_model <- nnet(
+  Churn ~ ., data = trainData,
+  size = 2, decay = 0.04, maxit = 300, trace = FALSE
+)
+
+# Predict on the test set
+nn_prob <- predict(nn_model, testData, type = "raw")
+
+# Evaluate the model
+# Confusion matrix
+nn_pred <- as.factor(ifelse(nn_prob > 0.5, 1, 0))
+conf_matrix <- confusionMatrix(nn_pred, testData$Churn)
+print(conf_matrix)
+
+# Compute and plot the ROC curve
+nn_roc <- roc(testData$Churn, as.numeric(nn_prob), 
+              levels = rev(levels(testData$Churn)))
+plot(nn_roc, col = "blue", main = "Neural Network ROC Curve")
+auc_value <- auc(nn_roc)
+cat("Neural Network AUC:", auc_value, "\n")
+
+```
+
+
+## Balancing configuration with adjusted threshold
+
+```{r NN-ThresholdAdjustment, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+# Adjust the threshold to improve specificity
+threshold <- 0.54  # Adjust to a higher value to improve specificity
+nn_pred_adjusted <- as.factor(ifelse(nn_prob > threshold, 1, 0))
+
+# Generate a confusion matrix for the adjusted threshold
+conf_matrix_adjusted <- confusionMatrix(nn_pred_adjusted, testData$Churn)
+print(conf_matrix_adjusted)
+
+# Recalculate and plot the ROC curve for the adjusted predictions
+nn_roc_adjusted <- roc(testData$Churn, as.numeric(nn_prob), levels = rev(levels(testData$Churn)))
+plot(nn_roc_adjusted, col = "red", main = "Neural Network ROC Curve (Adjusted Threshold)")
+auc_value_adjusted <- auc(nn_roc_adjusted)
+cat("Neural Network AUC (Adjusted Threshold):", auc_value_adjusted, "\n")
+```
+
+
+## Final NN Model Performance (Resampling with Weight Ratio)
+
+```{r NN-ResamplingWithWeightRatio, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+# Assign weights to each class (focus on minority class)
+weights <- ifelse(trainData$Churn == 1, 1.5, 1)  # Adjust the weight ratio as needed
+
+# Perform weighted resampling
+trainData_resampled <- trainData[rep(1:nrow(trainData), times = weights), ]
+
+# Train a Neural Network model on the resampled data
+nn_model_resampled <- nnet(
+  Churn ~ ., data = trainData_resampled,
+  size = 2, decay = 0.04, maxit = 300, trace = FALSE
+)
+
+# Predict on the test set
+nn_prob_resampled <- predict(nn_model_resampled, testData, type = "raw")
+
+# Evaluate model performance
+nn_pred_resampled <- as.factor(ifelse(nn_prob_resampled > 0.5, 1, 0))
+conf_matrix_resampled <- confusionMatrix(nn_pred_resampled, testData$Churn)
+print(conf_matrix_resampled)
+
+# Plot the ROC Curve for the resampled model
+nn_roc_resampled <- roc(testData$Churn, as.numeric(nn_prob_resampled), levels = rev(levels(testData$Churn)))
+plot(nn_roc_resampled, col = "blue", main = "Neural Network ROC Curve (Resampled Data)")
+auc_resampled <- auc(nn_roc_resampled)
+cat("Neural Network AUC (Resampled Data):", auc_resampled, "\n")
+```
+
