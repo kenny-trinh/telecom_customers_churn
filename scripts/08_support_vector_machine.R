@@ -99,10 +99,10 @@ svm_model <- svm(Churn ~ ., data = trainData, kernel = "radial",
                  cost = 1, gamma = 0.1, probability = TRUE)
 
 # Tune the SVM model with probability
-tuned_parameters <- tune(svm, Churn ~ ., data = trainData,
-                         ranges = list(cost = c(0.1, 1, 10), 
-                                       gamma = c(0.01, 0.1, 1)),
-                         probability = TRUE)
+# tuned_parameters <- tune(svm, Churn ~ ., data = trainData,
+#                          ranges = list(cost = c(0.1, 1, 10), 
+#                                        gamma = c(0.01, 0.1, 1)),
+#                          probability = TRUE)
 
 # run with best parameters cost 10 and gamma 0.1 instead of tuning it again
 tuned_parameters <- tune(svm, Churn ~ ., data = trainData,

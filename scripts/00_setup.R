@@ -10,7 +10,8 @@ required_packages <- c(
   'pROC',
   'ggplot2',
   'RSNNS',
-  'e1071'
+  'e1071',
+  'mgcv'
 )
 
 # Function to check and install missing packages

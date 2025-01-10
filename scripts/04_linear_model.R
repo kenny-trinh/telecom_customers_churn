@@ -1,4 +1,7 @@
-# Step 1: Initial linear model with all relevant predictors
+# Load required libraries
+library(ggplot2)
+
+# Initial linear model with all relevant predictors
 lm_initial <- lm(log(MonthlyCharges) ~ 
                    tenure + 
                    InternetService + 
@@ -12,11 +15,7 @@ lm_initial <- lm(log(MonthlyCharges) ~
                    PhoneService,
                  data = d.cleaned_telecom_customer_churn)
 
-# Step 2: Check model diagnostics
-par(mfrow = c(2,2))
-plot(lm_initial)
-
-# Step 3: Get model summary
+# Get model summary
 summary(lm_initial)
 
 

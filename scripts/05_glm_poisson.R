@@ -1,4 +1,6 @@
+# Load required libraries
 library(ggplot2)
+
 ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure)) +
   geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
   labs(title = "Distribution of Tenure",
@@ -35,13 +37,6 @@ glm_quasi <- glm(tenure ~ InternetService * Contract + PaymentMethod * Contract 
                  data = d.cleaned_telecom_customer_churn)
 summary(glm_quasi)
 
-
-
-
-
-
-
-
 # Fit Poisson regression with interactions
 glm_tenure_interaction <- glm(
   tenure ~ InternetService * Contract +
@@ -55,5 +50,3 @@ glm_tenure_interaction <- glm(
 
 # Summary of the updated model
 summary(glm_tenure_interaction)
-
-
