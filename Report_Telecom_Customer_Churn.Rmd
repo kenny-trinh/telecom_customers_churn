@@ -89,7 +89,7 @@ TeleConnect's problems are multifaceted:
 
 TeleConnect’s leadership knows the stakes: acquiring a new customer costs significantly more than retaining an existing one. Yet, without data-driven insights, their current retention strategies feel like guesswork.
 
-### **Why Machine Learning?**
+**Why Machine Learning?**
 
 To address these challenges, TeleConnect has embraced a multi-model machine learning approach, leveraging advanced analytics to transform their operations. By applying complementary models tailored to different aspects of customer behavior, TeleConnect seeks to:
 
@@ -98,7 +98,7 @@ To address these challenges, TeleConnect has embraced a multi-model machine lear
 3.  **Forecast Churn**: Identify at-risk customers proactively and implement targeted retention efforts.
 4.  **Segment Customers by Risk**: Group customers into risk categories to prioritize retention strategies effectively.
 
-### **The Opportunity**
+**The Opportunity**
 
 By integrating machine learning models into its decision-making processes, TeleConnect can:
 
@@ -147,15 +147,13 @@ d.cleaned_telecom_customer_churn <- d.cleaned_telecom_customer_churn %>%
   )
 ```
 
-### **1. Continuous Variables:**
+**1. Continuous Variables:**
 
 -   `tenure` (Number of months the customer has been with the company)
 -   `MonthlyCharges` (Monthly charge in dollars)
 -   `TotalCharges` (Cumulative charges in dollars)
 
-------------------------------------------------------------------------
-
-### **2. Categorical Variables:**
+**2. Categorical Variables:**
 
 -   `MultipleLines` (No phone service/Yes/No)
 -   `InternetService` (DSL/Fiber optic/No)
@@ -168,9 +166,7 @@ d.cleaned_telecom_customer_churn <- d.cleaned_telecom_customer_churn %>%
 -   `Contract` (Month-to-month/One year/Two year)
 -   `PaymentMethod` (Electronic check/Mailed check/Bank transfer/Credit card)
 
-------------------------------------------------------------------------
-
-### **3. Binomial Variables:**
+**3. Binomial Variables:**
 
 -   `gender` (Male/Female)
 -   `SeniorCitizen` (0/1)
@@ -345,7 +341,7 @@ summary(lm_initial)
 -   Streaming services both have similar effects (about 15%)
 -   Extremely low p-value (\< 2.2e-16), indicating the model is significant
 
-### Visualizing the main effects
+## Visualizing the main effects
 
 **Monthly Charges against Tenure:**
 
@@ -379,7 +375,7 @@ ggplot(d.cleaned_telecom_customer_churn,
        y = "Log Monthly Charges")
 ```
 
-### Enhancing the models with interactions:
+## Enhancing the models with interactions:
 
 ```{r LM-Interactions, echo=FALSE, results='show', message=FALSE, warning=FALSE}
 # Enhanced model with interactions
@@ -395,7 +391,7 @@ lm_enhanced <- lm(log(MonthlyCharges) ~
 summary(lm_enhanced)
 ```
 
-**Model Summary:**
+## Model Summary
 
 Our model explains 98.82% of the variability in monthly charges, showing strong predictive power. The key factors affecting monthly charges are:
 
@@ -410,7 +406,7 @@ Our model explains 98.82% of the variability in monthly charges, showing strong 
     -   Phone Service: +15.1%
     -   Security/Support services: +7.5% each
 
-### **Model Comparison:**
+## Model Comparison
 
 Initial Model: R-squared = 0.9865 Enhanced Model: R-squared = 0.9882 Improvement: 0.0017 (only about 0.17%)
 
@@ -421,7 +417,7 @@ This small improvement suggests that:
     -   Greater parsimony (fewer parameters)
     -   Nearly identical predictive power (98.65% vs 98.82%)
 
-### **Business Value and Insights for Teleconnet:**
+## Business Value and Insights for Teleconnet
 
 1.  **Internet Service is the Primary Revenue Driver**:
     -   **Value**: Internet service type (e.g., Fiber optic) has the largest impact on monthly charges, making it the most critical factor for revenue growth.
@@ -867,7 +863,7 @@ Both models performed well in predicting churn, with GAM offering additional fle
 
 TeleConnect aims to leverage Neural Network (NN) models to enhance customer retention by identifying churn-prone customers with high accuracy. The NN model was trained and tested to predict churn outcomes using customer behavioral and demographic data. This analysis focuses on understanding key metrics like sensitivity, specificity, and precision to refine TeleConnect's retention strategies.
 
-## **Recommended Neural Network Configurations**
+## Recommended Neural Network Configurations
 
 | **Configuration** | **Size** | **Decay** | **Accuracy** | **Sensitivity** | **Specificity** | **Balanced Accuracy** | **Kappa** | **Notes** |
 |--------|--------|--------|--------|--------|--------|--------|--------|--------|
@@ -955,7 +951,7 @@ cat("Neural Network AUC:", auc_value, "\n")
 
 ```
 
-## **Key Insights from Neural Network Configurations**
+## Key Insights from Neural Network Configurations
 
 1.  **Best Overall Model**:
     -   **Size = 2, Decay = 0.04** delivers the best trade-off between sensitivity (91.10%) and specificity (54.42%), making it ideal for practical deployment.
