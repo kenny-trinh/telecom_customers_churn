@@ -1,5 +1,5 @@
 ---
-title: "Report Comprehensive Telecom Customer Analysis"
+title: "Telecom Customer Churn Prediction Analysis"
 author:
   - "Kenny Trinh"
   - "Sabin Pun"
@@ -18,7 +18,7 @@ header-includes:
 \newpage
 \pagenumbering{arabic}
 
-```{r Setup, echo=FALSE, results='hide', message=FALSE, warning=FALSE}
+```{r Setup, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
 knitr::opts_chunk$set(echo = FALSE, fig.width = 8, fig.height = 3, fig.align = "center" )
 
 # List of required packages
@@ -112,7 +112,7 @@ The dataset encompasses comprehensive customer information including:
 
 To categorize the variables in your dataset into **continuous**, **categorical**, **count**, and **binomial**, let’s analyze them step by step:
 
-```{r DatasetOverview, echo=FALSE, results='asis'}
+```{r DatasetOverview, echo=FALSE, results='asis', cache=TRUE}
 # Show the cleaned data as a table
 d.cleaned_telecom_customer_churn <- read_csv(
   file.path(cleaned_data_dir, "telecom_customers_churn_cleaned.csv")
@@ -195,7 +195,7 @@ d.cleaned_telecom_customer_churn <- d.cleaned_telecom_customer_churn %>%
 
 The exploratory data analysis focuses on understanding customer churn, service adoption, and tenure patterns. This section includes visual and statistical analysis to identify trends and factors influencing churn and customer behavior.
 
-```{r EDA-Visualizations, echo=FALSE, results='asis', warning=FALSE}
+```{r EDA-Visualizations, echo=FALSE, results='asis', warning=FALSE, cache=TRUE}
 # Load required libraries if not already loaded
 library(ggplot2)
 library(gridExtra)
@@ -310,7 +310,7 @@ The predictors used are:
 
 Linear Model to predict monthly charges:
 
-```{r LM-Model, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r LM-Model, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Load required libraries
 library(ggplot2)
 
@@ -346,7 +346,7 @@ summary(lm_initial)
 
 **Monthly Charges against Tenure:**
 
-```{r LM-Visualizations, echo=FALSE, results='asis'}
+```{r LM-Visualizations, echo=FALSE, results='asis', cache=TRUE}
 # Effect of Internet Service with smoother
 ggplot(d.cleaned_telecom_customer_churn, 
        aes(x = tenure, y = log(MonthlyCharges), color = InternetService)) +
@@ -364,7 +364,7 @@ ggplot(d.cleaned_telecom_customer_churn,
 
 **Monthly Charges vs Tenure:**
 
-```{r LM-Visualizations2, echo=FALSE, results='asis'}
+```{r LM-Visualizations2, echo=FALSE, results='asis', cache=TRUE}
 # Effect of Contract with smoother
 ggplot(d.cleaned_telecom_customer_churn, 
        aes(x = tenure, y = log(MonthlyCharges), color = Contract)) +
@@ -378,7 +378,7 @@ ggplot(d.cleaned_telecom_customer_churn,
 
 ## Enhancing the models with interactions:
 
-```{r LM-Interactions, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r LM-Interactions, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Enhanced model with interactions
 lm_enhanced <- lm(log(MonthlyCharges) ~ 
                     tenure * InternetService +    # Add interaction with tenure
@@ -446,7 +446,7 @@ Include relevant predictors, such as:
 
 Exploring the Data:
 
-```{r Poisson-DataExploration, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r Poisson-DataExploration, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Load required libraries
 library(ggplot2)
 
@@ -463,7 +463,7 @@ ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure)) +
 
 ## Fit Poisson regression
 
-```{r Poisson-Model, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r Poisson-Model, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 glm_tenure <- glm(tenure ~ InternetService + Contract + PaymentMethod +
                     StreamingTV + StreamingMovies + SeniorCitizen +
                     Partner + MonthlyCharges + TotalCharges,
@@ -521,7 +521,7 @@ summary(glm_tenure)
 
 **Boxplot for Contract**
 
-```{r Poisson-Visualizations, echo=FALSE, results='asis'}
+```{r Poisson-Visualizations, echo=FALSE, results='asis', cache=TRUE}
 # Boxplot for Contract
 ggplot(d.cleaned_telecom_customer_churn, aes(x = Contract, y = tenure)) +
   geom_boxplot(fill = "lightblue", outlier.color = "red") +
@@ -534,7 +534,7 @@ ggplot(d.cleaned_telecom_customer_churn, aes(x = Contract, y = tenure)) +
 
 Boxplot for Internet Service
 
-```{r Poisson-Visualizations2, echo=FALSE, results='asis'}
+```{r Poisson-Visualizations2, echo=FALSE, results='asis', cache=TRUE}
 # Boxplot for Internet Service
 ggplot(d.cleaned_telecom_customer_churn, aes(x = InternetService, y = tenure)) +
   geom_boxplot(fill = "lightgreen", outlier.color = "red") +
@@ -547,7 +547,7 @@ ggplot(d.cleaned_telecom_customer_churn, aes(x = InternetService, y = tenure)) +
 
 Model with Quasi- Poisson Model with interaction Terms:
 
-```{r Poisson-QuasiModel, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r Poisson-QuasiModel, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 glm_quasi <- glm(tenure ~ InternetService * Contract + PaymentMethod * Contract +
                    StreamingTV + StreamingMovies + SeniorCitizen + Partner +
                    MonthlyCharges + TotalCharges,
@@ -594,7 +594,7 @@ Customer **tenure** is strongly influenced by contract type, internet service, a
 
 First let's prepare the data for the visualization and modelling.
 
-```{r GLM-Binomial-GAM-DataPreparation, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r GLM-Binomial-GAM-DataPreparation, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 
 # Load required libraries
 library(ggplot2)
@@ -624,7 +624,7 @@ Let's plot some results to understand the data better.
 
 ## Plot: Tenure vs. TotalCharges by Churn
 
-```{r GLM-Binomial-GAM-Visualizations, echo=FALSE, results='asis'}
+```{r GLM-Binomial-GAM-Visualizations, echo=FALSE, results='asis', cache=TRUE}
 # Ensure necessary libraries are installed
 if(!require(ggplot2)) install.packages("ggplot2")
 
@@ -647,7 +647,7 @@ Higher tenure and total charges are associated with lower churn, reinforcing loy
 
 ## Plot: Tenure by Contract Type
 
-```{r GLM-Binomial-GAM-Visualizations2, echo=FALSE, results='asis'}
+```{r GLM-Binomial-GAM-Visualizations2, echo=FALSE, results='asis', cache=TRUE}
 
 ggplot(data, aes(x = Contract, y = tenure, fill = Contract)) +
   geom_boxplot(alpha = 0.7) +
@@ -664,7 +664,7 @@ Longer contract durations (e.g., two years) correlate with higher customer reten
 
 ## Plot: Churn by Payment Method
 
-```{r GLM-Binomial-GAM-Visualizations3, echo=FALSE, results='asis'}
+```{r GLM-Binomial-GAM-Visualizations3, echo=FALSE, results='asis', cache=TRUE}
 
 ggplot(data, aes(x = PaymentMethod, fill = Churn)) +
   geom_bar(position = "fill", alpha = 0.8) +
@@ -682,7 +682,7 @@ Customers using electronic checks exhibit the highest churn proportion, suggesti
 
 ## Plot: Churn Proportion by Internet Service
 
-```{r GLM-Binomial-GAM-Visualizations4, echo=FALSE, results='asis'}
+```{r GLM-Binomial-GAM-Visualizations4, echo=FALSE, results='asis', cache=TRUE}
 # Load necessary libraries
 if (!require(ggplot2)) install.packages("ggplot2")
 if (!require(dplyr)) install.packages("dplyr")
@@ -717,7 +717,7 @@ Let's create models of GLM and GAM to see if they catch these relations and how 
 
 ## GLM
 
-```{r GLM, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r GLM, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 
 # Set 'No service' as the reference level for InternetService
 data$InternetService <- relevel(data$InternetService, ref = "No")
@@ -757,7 +757,7 @@ Longer contracts significantly reduce churn.
 
 ## Did the model overfit?
 
-```{r GLM-Overfitting, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r GLM-Overfitting, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 library(pROC)
 # Split data into training and test sets
 set.seed(123)
@@ -780,7 +780,7 @@ cat("Test AUC:", test_auc, "\n")
 
 The Train AUC (0.847) and Test AUC (0.854) are very close, indicating that the model performs consistently on both the training and test datasets. This suggests good generalization without overfitting to the training data.
 
-```{r GLM-CrossValidation, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r GLM-CrossValidation, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 library(caret)
 
 # Set up cross-validation
@@ -800,7 +800,7 @@ If there were significant overfitting, we would expect a much larger difference 
 
 ## GAM with non-linear patterns
 
-```{r GAM-WithNonLinearPatterns, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r GAM-WithNonLinearPatterns, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 library(mgcv)
 data$TotalCharges_centered <- data$TotalCharges- mean(data$TotalCharges)
 cat("Reference level for 'Contract':", levels(data$Contract)[1], "\n")
@@ -819,7 +819,7 @@ edf shows that mooth terms for tenure and TotalCharges_centered are highly signi
 
 Let's compare these models.
 
-```{r ROC-Comparison, echo=FALSE, results='asis'}
+```{r ROC-Comparison, echo=FALSE, results='asis', cache=TRUE}
 
 library(pROC)
 
@@ -844,13 +844,13 @@ cat("AUC of Model gam_smoothing_spline:", auc2, "\n")
 
 Both models perform similarly in terms of AUC, but GAM slightly edges out GLM in predictive performance.
 
-```{r Anova-Comparison, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r Anova-Comparison, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 anova(glm_model_interaction, gam_smoothing_spline, test = "Chisq")
 ```
 
 GAM explains more variance than GLM.
 
-```{r AIC-Comparison, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r AIC-Comparison, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 AIC(glm_model_interaction, gam_smoothing_spline)
 ```
 
@@ -869,14 +869,14 @@ TeleConnect aims to leverage Neural Network (NN) models to enhance customer rete
 
 ## Recommended Neural Network Configurations
 
-| **Configuration** | **Size** | **Decay** | **Accuracy** | **Sensitivity** | **Specificity** | **Balanced Accuracy** | **Kappa** |
+| **Config.** | **Size** | **Decay** | **Accuracy** | **Sensitivity** | **Specificity** | **Balanced Accuracy** | **Kappa** |
 |--------|--------|--------|--------|--------|--------|--------|--------|
 | **1** | **2** | **0.04** | **81.38%** | **91.10%** | **54.42%** | **72.76%** | **0.4879** |
 | **2** | 1 | 0.04 | 80.88% | 90.04% | 55.50% | 72.77% | 0.4813 |
 | **3** | 7 | 0.04 | 79.74% | 88.30% | 56.03% | 72.17% | 0.4603 |
 | **4** | 5 | 0.04 | 80.60% | 90.14% | 54.16% | 72.15% | 0.4707 |
 
-**Remarks:**
+**Comparison:**
 
 - Configuration 1:
   - Best overall.
@@ -893,7 +893,7 @@ TeleConnect aims to leverage Neural Network (NN) models to enhance customer rete
 
 ## Finding the most optimal Neural Network Configuration
 
-```{r NN-FindOptimalConfiguration, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r NN-FindOptimalConfiguration, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Load necessary libraries
 library(caret)
 library(nnet)
@@ -983,7 +983,7 @@ cat("Neural Network AUC:", auc_value, "\n")
 
 ## Balancing configuration with adjusted threshold
 
-```{r NN-ThresholdAdjustment, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r NN-ThresholdAdjustment, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Adjust the threshold to improve specificity
 threshold <- 0.54  # Adjust to a higher value to improve specificity
 nn_pred_adjusted <- as.factor(ifelse(nn_prob > threshold, 1, 0))
@@ -1003,7 +1003,7 @@ cat("Neural Network AUC (Adjusted Threshold):", auc_value_adjusted, "\n")
 
 ## Final NN Model Performance (Resampling with Weight Ratio)
 
-```{r NN-ResamplingWithWeightRatio, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+```{r NN-ResamplingWithWeightRatio, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
 # Assign weights to each class (focus on minority class)
 weights <- ifelse(trainData$Churn == 1, 1.5, 1)
 
@@ -1034,7 +1034,7 @@ cat("Neural Network AUC (Resampled Data):", auc_resampled, "\n")
 
 ## Neural Network with RSNNS
 
-```{r NN-RSNNS, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+```{r NN-RSNNS, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
 # Convert categorical variables to dummy variables
 train_data_numeric <- model.matrix(~ . - 1, data = trainData[, -which(names(trainData) == "Churn")])  # Remove intercept
 test_data_numeric <- model.matrix(~ . - 1, data = testData[, -which(names(testData) == "Churn")])    # Remove intercept
@@ -1083,7 +1083,7 @@ cat("Precision:", round(precision, 4), "\n")
 ```
 ## Neural Network with RSNNS: Trying Alternative Activation Functions
 
-```{r NN-Conclusion, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+```{r NN-Conclusion, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
 # Convert categorical variables to dummy variables
 train_data_numeric <- model.matrix(~ . - 1, data = trainData[, -which(names(trainData) == "Churn")])  # Remove intercept
 test_data_numeric <- model.matrix(~ . - 1, data = testData[, -which(names(trainData) == "Churn")])    # Remove intercept
@@ -1170,7 +1170,7 @@ cat("Precision:", round(precision_relu, 4), "\n")
 ```
 ## Neural Network with Regularization and Adjusted Architecture
 
-```{r NN-RegularizationAndAdjustedArchitecture, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+```{r NN-RegularizationAndAdjustedArchitecture, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
 
 # Convert categorical variables to dummy variables
 train_data_numeric <- model.matrix(~ . - 1, data = trainData[, -which(names(trainData) == "Churn")])  # Remove intercept
@@ -1216,7 +1216,7 @@ cat("Precision:", round(precision, 4), "\n")
 ```
 ## Neural Network Experimentation with Different Architectures
 
-```{r NN-ExperimentationWithDifferentArchitectures, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+```{r NN-ExperimentationWithDifferentArchitectures, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
 # Define a list of architectures to test
 architectures <- list(
   c(20, 10, 5),
@@ -1288,7 +1288,7 @@ ggplot(architecture_results, aes(x = Architecture)) +
   labs(title = "Performance Metrics by Architecture", x = "Architecture", y = "Metrics") +
   theme_minimal()
 ```
-```{r NN-AddingDropoutRegularization, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+```{r NN-AddingDropoutRegularization, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
 nn_model_dropout <- mlp(
   x = train_data_numeric, 
   y = train_labels,
@@ -1351,7 +1351,7 @@ cat("Precision:", round(precision_thresh, 4), "\n")
 
 ## Threshold Analysis and Visualization
 
-```{r NN-ThresholdAnalysis, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+```{r NN-ThresholdAnalysis, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
 # Define thresholds to test
 thresholds <- seq(0.1, 0.9, by = 0.05)
 
@@ -1496,7 +1496,7 @@ Using the trained SVM model, churn probabilities were calculated for each custom
 1. The SVM model was tuned using radial kernel with the best parameters: `Cost = 10`, `Gamma = 0.1`.
 2. Predictions were generated, including probabilities for both classes (`Yes` for churn, `No` for non-churn).
 
-```{r SVM-ChurnProbabilityPrediction, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r SVM-ChurnProbabilityPrediction, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Load necessary libraries
 library(e1071)
 library(caret)
@@ -1554,7 +1554,7 @@ print(best_parameters)
 
 ## Evaluate additional metrics for the tuned model
 
-```{r SVM-AdditionalMetrics, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r SVM-AdditionalMetrics, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Ensure the predicted and actual values are factors
 best_predictions <- as.factor(best_predictions)
 testData$Churn <- as.factor(testData$Churn)
@@ -1605,7 +1605,7 @@ Using the trained SVM model, churn probabilities were calculated for each custom
 
 **Sample Output**:
 
-```{r SVM-ChurnProbabilityPredictionOutput, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r SVM-ChurnProbabilityPredictionOutput, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Train the SVM model with probability estimates enabled
 svm_model <- svm(Churn ~ ., data = trainData, kernel = "radial", 
                  cost = 1, gamma = 0.1, probability = TRUE)
@@ -1645,7 +1645,7 @@ Customers were segmented into three risk groups based on churn probabilities:
 | **Medium Risk** | `0.3 - 0.7` | 228 |
 | **High Risk** | `> 0.7` | 145 |
 
-```{r SVM-CustomerSegmentation, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r SVM-CustomerSegmentation, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Add churn probabilities and predicted class to the test data
 testData$Churn_Prob <- probabilities_df[, "Yes"]
 testData$Risk_Group <- cut(testData$Churn_Prob, 
@@ -1666,7 +1666,7 @@ head(testData[, c("Churn_Prob", "Risk_Group")])
 
 **Visualization**:
 
-```{r SVM-VisualizingCustomerSegmentation, echo=FALSE, results='asis', message=FALSE, warning=FALSE}
+```{r SVM-VisualizingCustomerSegmentation, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
 # Plot churn probability by risk group
 ggplot(testData, aes(x = Risk_Group, y = Churn_Prob)) +
   geom_boxplot(aes(fill = Risk_Group)) +
@@ -1683,7 +1683,7 @@ A **boxplot** was used to visualize the distribution of churn probabilities acro
 
 **Average Monthly Charges and Tenure by Risk Group**:
 
-```{r SVM-FeatureImportance, echo=FALSE, results='show', message=FALSE, warning=FALSE}
+```{r SVM-FeatureImportance, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # ---Grouping Customers by Key Features---
 # Summarize average monthly charges by risk group
 segmentation_summary <- testData %>%
