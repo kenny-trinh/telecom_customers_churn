@@ -195,7 +195,7 @@ d.cleaned_telecom_customer_churn <- d.cleaned_telecom_customer_churn %>%
 
 The exploratory data analysis focuses on understanding customer churn, service adoption, and tenure patterns. This section includes visual and statistical analysis to identify trends and factors influencing churn and customer behavior.
 
-```{r EDA-Visualizations, echo=FALSE, results='asis'}
+```{r EDA-Visualizations, echo=FALSE, results='asis', warning=FALSE}
 # Load required libraries if not already loaded
 library(ggplot2)
 library(gridExtra)
@@ -291,7 +291,8 @@ In our analysis, we employed the following machine learning approaches:
 5.  **Neural Network (NN)**: To recognize complex patterns in customer churn
 6.  **Support Vector Machine (SVM)**: To segment customers based on churn risk and grouping them.
 
-# Linear Model (LM) (Sabin)
+# Linear Model (LM)
+*Sabin Pun took the lead on the linear model.*
 
 To address **TeleConnect’s price sensitivity challenge**, we began by building a **Linear Model (LM)** to analyze the factors influencing **MonthlyCharges**, the amount customers pay per month. Understanding what drives these charges provides crucial insights into how TeleConnect can design competitive pricing strategies and service bundles.
 
@@ -426,7 +427,8 @@ This small improvement suggests that:
 3.  **Add-On Services Boost Revenue Incrementally**:
     -   **Value**: Services like Streaming, Security, and Tech Support add 6-14% to monthly charges, providing consistent opportunities for revenue growth.
 
-# GLM-Poisson Model (Sabin)
+# GLM-Poisson Model
+*Sabin Pun took the lead on the GLM-Poisson model.*
 
 To address **TeleConnect’s challenge of understanding customer retention**, we utilized a **GLM-Poisson model** to analyze the factors influencing **tenure**—the number of months a customer remains with the company. By identifying the key drivers of tenure, this model helps TeleConnect develop targeted retention strategies.
 
@@ -587,11 +589,12 @@ summary(glm_quasi)
 
 Customer **tenure** is strongly influenced by contract type, internet service, and payment methods, with significant interaction effects between these factors. Long-term contracts and bundled internet services emerge as the most effective strategies to enhance customer retention.
 
-# GLM-Binomial (Logistic Regression) & GAM (SARP)
+# GLM-Binomial (Logistic Regression) & GAM
+*Sarp Koc took the lead on the GLM-Binomial and GAM models.*
 
 First let's prepare the data for the visualization and modelling.
 
-```{r}
+```{r GLM-Binomial-GAM-DataPreparation, echo=FALSE, results='show', message=FALSE, warning=FALSE}
 
 # Load required libraries
 library(ggplot2)
@@ -621,7 +624,7 @@ Let's plot some results to understand the data better.
 
 ## Plot: Tenure vs. TotalCharges by Churn
 
-```{r}
+```{r GLM-Binomial-GAM-Visualizations, echo=FALSE, results='asis'}
 # Ensure necessary libraries are installed
 if(!require(ggplot2)) install.packages("ggplot2")
 
@@ -644,7 +647,7 @@ Higher tenure and total charges are associated with lower churn, reinforcing loy
 
 ## Plot: Tenure by Contract Type
 
-```{r}
+```{r GLM-Binomial-GAM-Visualizations2, echo=FALSE, results='asis'}
 
 ggplot(data, aes(x = Contract, y = tenure, fill = Contract)) +
   geom_boxplot(alpha = 0.7) +
@@ -661,7 +664,7 @@ Longer contract durations (e.g., two years) correlate with higher customer reten
 
 ## Plot: Churn by Payment Method
 
-```{r}
+```{r GLM-Binomial-GAM-Visualizations3, echo=FALSE, results='asis'}
 
 ggplot(data, aes(x = PaymentMethod, fill = Churn)) +
   geom_bar(position = "fill", alpha = 0.8) +
@@ -679,7 +682,7 @@ Customers using electronic checks exhibit the highest churn proportion, suggesti
 
 ## Plot: Churn Proportion by Internet Service
 
-```{r}
+```{r GLM-Binomial-GAM-Visualizations4, echo=FALSE, results='asis'}
 # Load necessary libraries
 if (!require(ggplot2)) install.packages("ggplot2")
 if (!require(dplyr)) install.packages("dplyr")
@@ -714,7 +717,7 @@ Let's create models of GLM and GAM to see if they catch these relations and how 
 
 ## GLM
 
-```{r}
+```{r GLM, echo=FALSE, results='show', message=FALSE, warning=FALSE}
 
 # Set 'No service' as the reference level for InternetService
 data$InternetService <- relevel(data$InternetService, ref = "No")
@@ -754,7 +757,7 @@ Longer contracts significantly reduce churn.
 
 ## Did the model overfit?
 
-```{r}
+```{r GLM-Overfitting, echo=FALSE, results='show', message=FALSE, warning=FALSE}
 library(pROC)
 # Split data into training and test sets
 set.seed(123)
@@ -777,7 +780,7 @@ cat("Test AUC:", test_auc, "\n")
 
 The Train AUC (0.847) and Test AUC (0.854) are very close, indicating that the model performs consistently on both the training and test datasets. This suggests good generalization without overfitting to the training data.
 
-```{r}
+```{r GLM-CrossValidation, echo=FALSE, results='show', message=FALSE, warning=FALSE}
 library(caret)
 
 # Set up cross-validation
@@ -795,9 +798,9 @@ print(cv_model)
 
 If there were significant overfitting, we would expect a much larger difference between training and cross-validation accuracy. So it seems there is no overfit
 
-## GAM WITH NON-LINEAR PATTERNS
+## GAM with non-linear patterns
 
-```{r}
+```{r GAM-WithNonLinearPatterns, echo=FALSE, results='show', message=FALSE, warning=FALSE}
 library(mgcv)
 data$TotalCharges_centered <- data$TotalCharges- mean(data$TotalCharges)
 cat("Reference level for 'Contract':", levels(data$Contract)[1], "\n")
@@ -812,11 +815,11 @@ summary(gam_smoothing_spline)
 
 edf shows that mooth terms for tenure and TotalCharges_centered are highly significant (p \< 0.001), indicating non-linear effects. Relationship is non-linear but not overly complex.
 
-## ROC COMPARISON
+## ROC Comparison
 
 Let's compare these models.
 
-```{r}
+```{r ROC-Comparison, echo=FALSE, results='asis'}
 
 library(pROC)
 
@@ -841,13 +844,13 @@ cat("AUC of Model gam_smoothing_spline:", auc2, "\n")
 
 Both models perform similarly in terms of AUC, but GAM slightly edges out GLM in predictive performance.
 
-```{r}
+```{r Anova-Comparison, echo=FALSE, results='show', message=FALSE, warning=FALSE}
 anova(glm_model_interaction, gam_smoothing_spline, test = "Chisq")
 ```
 
 GAM explains more variance than GLM.
 
-```{r}
+```{r AIC-Comparison, echo=FALSE, results='show', message=FALSE, warning=FALSE}
 AIC(glm_model_interaction, gam_smoothing_spline)
 ```
 
@@ -857,7 +860,8 @@ GAM has a slightly lower AIC (5809.896) than GLM (5828.536), further supporting 
 
 Both models performed well in predicting churn, with GAM offering additional flexibility to capture non-linear relationships. While the non-linearity in some variables, like tenure, was not significant, GAM successfully identified a meaningful non-linear relationship with TotalCharges. The results highlight that customers are more likely to churn if they use fiber optic internet, pay via electronic checks, lack online security or tech support, or are senior citizens. Conversely, churn risk is lower for DSL users, those with higher tenure and total charges, and customers on longer-term contracts
 
-# Neural Network (NN) (Kenny)
+# Neural Network (NN)
+*Kenny Trinh took the lead on the Neural Network model.*
 
 ## Context and Objective
 
@@ -865,12 +869,27 @@ TeleConnect aims to leverage Neural Network (NN) models to enhance customer rete
 
 ## Recommended Neural Network Configurations
 
-| **Configuration** | **Size** | **Decay** | **Accuracy** | **Sensitivity** | **Specificity** | **Balanced Accuracy** | **Kappa** | **Notes** |
-|--------|--------|--------|--------|--------|--------|--------|--------|--------|
-| **Best Overall** | **2** | **0.04** | **81.38%** | **91.10%** | **54.42%** | **72.76%** | **0.4879** | Best balance across all metrics. |
-| **High Simplicity** | 1 | 0.04 | 80.88% | 90.04% | 55.50% | 72.77% | 0.4813 | Simple with strong performance. |
-| **Best Trade-off** | 7 | 0.04 | 79.74% | 88.30% | 56.03% | 72.17% | 0.4603 | Balanced with slightly higher specificity. |
-| **Moderate Complexity** | 5 | 0.04 | 80.60% | 90.14% | 54.16% | 72.15% | 0.4707 | Moderate complexity, great balance. |
+| **Configuration** | **Size** | **Decay** | **Accuracy** | **Sensitivity** | **Specificity** | **Balanced Accuracy** | **Kappa** |
+|--------|--------|--------|--------|--------|--------|--------|--------|
+| **1** | **2** | **0.04** | **81.38%** | **91.10%** | **54.42%** | **72.76%** | **0.4879** |
+| **2** | 1 | 0.04 | 80.88% | 90.04% | 55.50% | 72.77% | 0.4813 |
+| **3** | 7 | 0.04 | 79.74% | 88.30% | 56.03% | 72.17% | 0.4603 |
+| **4** | 5 | 0.04 | 80.60% | 90.14% | 54.16% | 72.15% | 0.4707 |
+
+**Remarks:**
+
+- Configuration 1:
+  - Best overall.
+  - Has the best balance across all metrics.
+- Configuration 2:
+  - High simplicity.
+  - Simple with strong performance.
+- Configuration 3:
+  - Best trade-off.
+  - Balanced with slightly higher specificity.
+- Configuration 4:
+  - Moderate complexity.
+  - Great balance.
 
 ## Finding the most optimal Neural Network Configuration
 
@@ -1444,7 +1463,11 @@ The Neural Network model demonstrates robust capabilities in identifying churn-p
 
 
 
-# Support Vector Machine (SVM) (Kenny)
+# Support Vector Machine (SVM)
+*Kenny Trinh took the lead on the Support Vector Machine model.*
+
+## Context and Objective
+*add here*
 
 ## Model Performance Metrics
 
