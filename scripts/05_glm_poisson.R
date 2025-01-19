@@ -30,23 +30,6 @@ ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = predicted_tenure)) 
        x = "Observed Tenure (Months)",
        y = "Predicted Tenure (Poisson Model)")
 
-# Boxplot for Contract 
-ggplot(d.cleaned_telecom_customer_churn, aes(x = Contract, y = tenure, fill = Contract)) +
-  geom_boxplot() +
-  theme_minimal() +
-  labs(title = "Tenure vs Contract Type",
-       x = "Contract Type",
-       y = "Tenure (Months)")
-
-
-# Fit Poisson regression with interactions
-ggplot(d.cleaned_telecom_customer_churn, aes(x = log(MonthlyCharges), y = tenure)) +
-  geom_point(alpha = 0.5) +
-  geom_smooth(method = "loess", color = "red") +
-  theme_minimal() +
-  labs(title = "Log Monthly Charges vs Tenure",
-       x = "Log(Monthly Charges)",
-       y = "Tenure (Months)")
 
 
 # Fit Quasi-Poisson Model
