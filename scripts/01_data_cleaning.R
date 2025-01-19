@@ -1,4 +1,4 @@
-## ----ImportData--------------------------------------------------------------
+## ---- Import Data ----
 # Read the data from the CSV file
 d.telecom_customer_churn <- read_delim(
   file.path(raw_data_dir, "telecom_customers_churn.csv"),
@@ -6,24 +6,24 @@ d.telecom_customer_churn <- read_delim(
   na = c("", "NA")
 )
 
-## ----DataPreview-------------------------------------------------------------
+## ---- Data Preview ----
 # Preview the data
 glimpse(d.telecom_customer_churn)
 
-## ----CheckNAValues-----------------------------------------------------------
+## ---- Check NA Values----
 # Check for missing values
 v.na_count <- colSums(is.na(d.telecom_customer_churn))
 
 # Print the number of missing values
 print(v.na_count)
 
-## ----ReplaceNAWithMeanOfTotalCharges-----------------------------------------
+## ---- Replace NA With Mean Of TotalCharges ----
 # Replace missing values in the TotalCharges column with the mean
 d.telecom_customer_churn$TotalCharges[
   is.na(d.telecom_customer_churn$TotalCharges)
   ] <- mean(d.telecom_customer_churn$TotalCharges, na.rm = TRUE)
 
-## ----CheckNAValuesAfterCleaning----------------------------------------------
+## ---- Check NA Values After Cleaning ----
 # Check if there are any missing values left
 v.na_count <- colSums(is.na(d.telecom_customer_churn))
 
@@ -34,7 +34,7 @@ print(v.na_count)
 d.telecom_customer_churn <- d.telecom_customer_churn %>%
   select(-customerID, -Dependents)
 
-## ----SaveCleanedData---------------------------------------------------------
+## ---- Save Cleaned Data ----
 # Save the cleaned data to a CSV file
 write_csv(d.telecom_customer_churn, file.path(
   cleaned_data_dir, "telecom_customers_churn_cleaned.csv"

@@ -1,4 +1,4 @@
-## ----PackageSetup-----------------------------------------------------------------------------------
+## ----PackageSetup----
 
 # List of required packages
 required_packages <- c(
@@ -10,7 +10,6 @@ required_packages <- c(
   'pROC',
   'ggplot2',
   'corrplot',
-  'RSNNS',
   'e1071',
   'mgcv',
   'gridExtra',
@@ -34,7 +33,7 @@ install_if_missing(required_packages)
 # Load all packages
 lapply(required_packages, library, character.only = TRUE)
 
-## ----DataPaths-------------------------------------------------------------------------------------
+## ----DataPaths----
 # Define data paths
 data_dir <- "data/"
 raw_data_dir <- paste0(data_dir, "raw/")

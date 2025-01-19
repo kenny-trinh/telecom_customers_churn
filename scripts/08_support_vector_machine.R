@@ -5,6 +5,8 @@ library(ggplot2)
 library(pROC)
 library(dplyr)
 
+# ---- Preparation ----
+
 # Load the cleaned dataset
 data <- read_csv(
   file.path(cleaned_data_dir, "telecom_customers_churn_cleaned.csv")
@@ -22,7 +24,7 @@ trainIndex <- createDataPartition(data$Churn, p = 0.8, list = FALSE)
 trainData <- data[trainIndex, ]
 testData <- data[-trainIndex, ]
 
-# ------------------ INITIAL SVM MODEL ------------------
+# ---- Initial SVM Model ----
 # Train the SVM model
 svm_model <- svm(Churn ~ ., data = trainData, kernel = "radial", cost = 1, 
                  gamma = 0.1)
@@ -38,7 +40,8 @@ confusionMatrix(predictions, testData$Churn)
 tuned_model_path <- "output/svm_tuned_model.rds"
 tuned_params_path <- "output/svm_tuned_parameters.rds"
 
-# ------------------ TUNED SVM MODEL ------------------
+# ---- Tuned SVM Model ----
+
 # Tune the SVM model for optimal hyperparameters or load if already saved
 set.seed(123)
 if (!file.exists(tuned_model_path) || !file.exists(tuned_params_path)) {
@@ -67,18 +70,18 @@ print(conf_matrix)
 # Extract probabilities
 probabilities <- attr(predict(best_model, testData, probability = TRUE), "probabilities")
 
-# ------------------ BEST PARAMETERS ------------------
+# ---- BEST PARAMETERS ----
 # Check the best parameters chosen during tuning
 cat("\nBest Parameters Chosen During Tuning:\n")
 print(tuned_parameters$best.parameters)
 
-# ------------------ PROBABILITIES ------------------
+# ---- PROBABILITIES ----
 # Extract probabilities
 probabilities <- attr(best_predictions, "probabilities")
 cat("\nSample of Predicted Probabilities:\n")
 print(head(probabilities))  # Display a sample of probabilities
 
-# ---Evaluate additional metrics for the tuned model---
+# ---- Evaluate additional metrics for the tuned model ----
 # Ensure the predicted and actual values are factors
 best_predictions <- as.factor(best_predictions)
 testData$Churn <- as.factor(testData$Churn)
@@ -98,7 +101,7 @@ cat("Precision:", round(precision, 4), "\n")
 cat("Recall:", round(recall, 4), "\n")
 cat("F1-Score:", round(f1_score, 4), "\n")
 
-# ---Generate the ROC curve and calculate AUC---
+# ---- Generate the ROC curve and calculate AUC ----
 # Get decision values (raw scores) for predictions
 svm_decision_values <- predict(best_model, testData, decision.values = TRUE)
 
@@ -116,7 +119,7 @@ auc_value <- auc(roc_curve)
 cat("AUC:", round(auc_value, 4), "\n")
 
 
-# ---Segmenting Customers Based on Risk Levels---
+# ---- Segmenting Customers Based on Risk Levels ----
 # Add churn probabilities and predicted class to the test data
 testData$Churn_Prob <- probabilities[, "Yes"]
 testData$Risk_Group <- cut(testData$Churn_Prob, 
@@ -126,7 +129,7 @@ testData$Risk_Group <- cut(testData$Churn_Prob,
 # View segmented data
 head(testData[, c("Churn_Prob", "Risk_Group")])
 
-# ---Visualizing Customer Segmentation---
+# ---- Visualizing Customer Segmentation ----
 # Plot churn probability by risk group
 ggplot(testData, aes(x = Risk_Group, y = Churn_Prob)) +
   geom_boxplot(aes(fill = Risk_Group)) +
@@ -135,7 +138,7 @@ ggplot(testData, aes(x = Risk_Group, y = Churn_Prob)) +
   ylab("Churn Probability") +
   theme_minimal()
 
-# ---Grouping Customers by Key Features---
+# ---- Grouping Customers by Key Features ----
 # Summarize average monthly charges by risk group
 segmentation_summary <- testData %>%
   group_by(Risk_Group) %>%

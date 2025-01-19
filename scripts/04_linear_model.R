@@ -2,6 +2,8 @@
 library(ggplot2)
 library(gridExtra)
 
+# ---- Apply linear model ----
+
 lm_model <- lm(log(MonthlyCharges) ~ tenure + InternetService + Contract + 
                  StreamingTV + StreamingMovies + OnlineSecurity + 
                  OnlineBackup + DeviceProtection + TechSupport + PhoneService, 
@@ -9,7 +11,7 @@ lm_model <- lm(log(MonthlyCharges) ~ tenure + InternetService + Contract +
 
 summary(lm_model)
 
-
+# ---- Create visualizations ----
 # Plot 1: Log Monthly Charges vs Tenure by Internet Service
 plot1 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = log(MonthlyCharges), color = InternetService)) +
   geom_point(alpha = 0.4) + 
@@ -28,5 +30,3 @@ plot2 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = log(Monthl
 
 # Arrange plots in grid view
 grid.arrange(plot1, plot2, ncol = 2)
-
-

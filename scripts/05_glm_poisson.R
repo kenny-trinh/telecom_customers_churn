@@ -8,7 +8,8 @@ ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure)) +
        y = "Frequency") +
   theme_minimal()
 
-# poisson model. 
+# ---- Apply poisson model ----
+
 # Fit Poisson regression
 glm_tenure <- glm(tenure ~ InternetService + Contract + PaymentMethod +
                     StreamingTV + StreamingMovies + SeniorCitizen +
@@ -17,6 +18,7 @@ glm_tenure <- glm(tenure ~ InternetService + Contract + PaymentMethod +
 
 summary(glm_tenure)
 
+# ---- Create Boxplots ----
 
 # Boxplot for Contract
 ggplot(d.cleaned_telecom_customer_churn, aes(x = Contract, y = tenure)) +
@@ -29,6 +31,8 @@ ggplot(d.cleaned_telecom_customer_churn, aes(x = InternetService, y = tenure)) +
   geom_boxplot(fill = "lightgreen", outlier.color = "red") +
   labs(title = "Tenure vs Internet Service", x = "Internet Service Type", y = "Tenure (Months)") +
   theme_minimal()
+
+# ---- Apply Quasi-Poisson model ----
 
 glm_quasi <- glm(tenure ~ InternetService * Contract + PaymentMethod * Contract +
                    StreamingTV + StreamingMovies + SeniorCitizen + Partner +

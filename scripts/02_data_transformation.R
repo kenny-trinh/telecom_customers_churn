@@ -1,3 +1,5 @@
+# ---- Data Preview After Cleaning ----
+
 # Show the cleaned data as a table
 d.cleaned_telecom_customer_churn <- read_csv(
   file.path(cleaned_data_dir, "telecom_customers_churn_cleaned.csv")
@@ -13,7 +15,7 @@ head(d.cleaned_telecom_customer_churn)
 summary(d.cleaned_telecom_customer_churn)
 
 
-#classify variables types
+# ---- Classify variables types ----
 variable_types <- sapply(d.cleaned_telecom_customer_churn, function(x) {
   if (is.numeric(x) && length(unique(x)) > 20) {
     "Continuous"
@@ -32,7 +34,8 @@ print(variable_types)
 
 View(variable_types)
 
-#creating count datatypes:
+
+# ---- Creating Count Datatypes ----
 # 1. Create service count variable (including all services)
 d.cleaned_telecom_customer_churn <- d.cleaned_telecom_customer_churn %>%
   mutate(

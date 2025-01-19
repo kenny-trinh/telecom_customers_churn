@@ -5,6 +5,8 @@ library(mgcv)
 library(pROC)
 library(caret)
 
+# ---- Preparation ----
+
 # Load the data
 data <- read.csv("telecom_customers_churn_cleaned.csv")
 data$Churn <- ifelse(data$Churn == "Yes", 1, 0)
@@ -16,7 +18,7 @@ data$TotalCharges <- log(data$TotalCharges)
 data$MonthlyCharges <- log(data$MonthlyCharges)
 data$InternetService <- as.factor(data$InternetService)
 
-# ---Exploratory Data Analysis---
+# ---- Exploratory Data Analysis ----
 # Plot: Tenure vs. TotalCharges by Churn
 ggplot(data, aes(x = tenure, y = TotalCharges, color = Churn)) +
   geom_point(alpha = 0.6) +
@@ -73,7 +75,7 @@ ggplot(proportion_df, aes(x = InternetService, y = Proportion, fill = as.factor(
   scale_fill_manual(values = c("blue", "red"), labels = c("No", "Yes")) +
   theme_minimal()
 
-# ---Fit the GLM model---
+# ---- Fit the GLM model ----
 # Set 'No service' as the reference level for InternetService
 data$InternetService <- relevel(data$InternetService, ref = "No")
 # Confirm reference level
@@ -111,7 +113,7 @@ cat("Train AUC:", train_auc, "\n")
 cat("Test AUC:", test_auc, "\n")
 
 
-# ---Cross-Validation---
+# ---- Cross-Validation ----
 # Set up cross-validation
 control <- trainControl(method = "cv", number = 10) # 10-fold cross-validation
 
@@ -125,7 +127,7 @@ cv_model <- train(Churn ~ SeniorCitizen + Contract + PaymentMethod +
 print(cv_model)
 
 
-# ---GAM with non-linear patterns
+# --- GAM with non-linear patterns ---
 data$TotalCharges_centered <- data$TotalCharges- mean(data$TotalCharges)
 cat("Reference level for 'Contract':", levels(data$Contract)[1], "\n")
 cat("Reference level for 'InternetService':", levels(data$InternetService)[1], "\n")
@@ -136,7 +138,7 @@ gam_smoothing_spline <- gam(Churn ~ SeniorCitizen + Contract + PaymentMethod +
                             family = binomial, data = data, select=TRUE)
 summary(gam_smoothing_spline)
 
-# ---Compare models---
+# ---- Compare models ----
 
 # Compare ROC curves
 # Predictions for glm_model

@@ -4,10 +4,12 @@ library(gridExtra)
 library(dplyr)
 library(corrplot)
 
-# Apply log transformation
+# ---- Apply log transformation ----
 d.cleaned_telecom_customer_churn <- d.cleaned_telecom_customer_churn %>%
   mutate(log_MonthlyCharges = log(MonthlyCharges + 1),
          log_TotalCharges = log(TotalCharges + 1))
+
+# ---- Create visualizations ----
 
 # Histograms before and after log transformation
 p1 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = MonthlyCharges)) + 
@@ -29,7 +31,7 @@ p4 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = log_TotalCharges)) +
 grid.arrange(p1, p2, p3, p4, ncol = 2)
 
 
-# Churn distribution
+# ---- Churn distribution ----
 churn_dist <- ggplot(d.cleaned_telecom_customer_churn, aes(x = Churn, fill = Churn)) +
   geom_bar() +
   geom_text(stat='count', aes(label=..count..), position=position_dodge(width=0.9), vjust=-0.5) +
@@ -39,7 +41,7 @@ churn_dist <- ggplot(d.cleaned_telecom_customer_churn, aes(x = Churn, fill = Chu
 # Display
 print(churn_dist)
 
-# Churn Rate by Contract Type:
+# ---- Churn Rate by Contract Type ---- 
 contract_churn <- ggplot(d.cleaned_telecom_customer_churn, aes(x = Contract, fill = Churn)) +
   geom_bar(position = "fill") +
   theme_minimal() +
@@ -49,7 +51,7 @@ contract_churn <- ggplot(d.cleaned_telecom_customer_churn, aes(x = Contract, fil
 print(contract_churn)
 
 
-#Monthly Charages vs Tenure
+# ---- Monthly Charages vs Tenure ----
 charges_tenure <- ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = MonthlyCharges, color = Churn)) +
   geom_smooth(method = "loess", se = TRUE) + 
   theme_minimal() +
@@ -58,17 +60,21 @@ charges_tenure <- ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = M
 # Display
 print(charges_tenure)
 
-# Arrange all plots in a grid: Bar plots on the left, Line plot on the right
+# ---- Arrange all plots in a grid ----
+
+# Bar plots on the left, Line plot on the right
 grid.arrange(churn_dist, contract_churn, charges_tenure, 
              layout_matrix = rbind(c(1,2), 
                                    c(3,3)))
+
+# ---- Correlation matrix ----
 
 # Selecting numeric variables
 numeric_vars <- d.cleaned_telecom_customer_churn %>%
   select(tenure, log_MonthlyCharges, log_TotalCharges, services_count) %>%
   na.omit()
 
-# Correlation matrix
+# Create Correlation matrix
 corr_matrix <- cor(numeric_vars)
 
 # Heatmap

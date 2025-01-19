@@ -4,7 +4,8 @@ library(nnet)
 library(pROC)
 library(ggplot2)
 library(dplyr)
-library(RSNNS)
+
+# ---- Preparation ----
 
 # Load the cleaned dataset
 data <- read_csv(
@@ -46,7 +47,9 @@ preProc <- preProcess(trainData[, c("tenure", "MonthlyCharges", "TotalCharges")]
 trainData[, c("tenure", "MonthlyCharges", "TotalCharges")] <- predict(preProc, trainData[, c("tenure", "MonthlyCharges", "TotalCharges")])
 testData[, c("tenure", "MonthlyCharges", "TotalCharges")] <- predict(preProc, testData[, c("tenure", "MonthlyCharges", "TotalCharges")])
 
-# Train the Neural Network
+
+
+# ---- Train the Neural Network ----
 nn_model <- nnet(
   Churn ~ ., data = trainData,
   size = 2, decay = 0.04, maxit = 300, trace = FALSE
@@ -55,7 +58,8 @@ nn_model <- nnet(
 # Predict on the test set
 nn_prob <- predict(nn_model, testData, type = "raw")
 
-# Evaluate the model
+
+# ---- Evaluate the model ----
 # Generate predictions (binary classification at 0.5 threshold)
 nn_pred <- as.factor(ifelse(nn_prob > 0.5, 1, 0))
 testData$Churn <- as.factor(testData$Churn)
@@ -94,7 +98,8 @@ abline(a = 0, b = 1, col = "gray", lty = 2)  # Add diagonal reference line
 auc_value <- auc(nn_roc)
 cat("Neural Network AUC:", round(auc_value, 4), "\n")
 
-#--- Adjusting the Threshold ---
+
+# ---- Adjusting the Threshold ----
 
 # Adjust the threshold to improve specificity
 threshold <- 0.54  # Adjust to a higher value to improve specificity
@@ -139,7 +144,8 @@ auc_value_adjusted <- auc(nn_roc_adjusted)
 cat("Neural Network AUC (Adjusted Threshold):", round(auc_value_adjusted, 4), "\n")
 
 
-# ---Cost-Sensitive Learning with Weighted Resampling with caret ---
+
+# ---- Cost-Sensitive Learning with Weighted Resampling with caret ----
 
 # Assign weights to each class (focus on minority class)
 weights <- ifelse(trainData$Churn == 1, 1.5, 1)  # Adjust the weight ratio as needed
@@ -168,7 +174,8 @@ auc_resampled <- auc(nn_roc_resampled)
 cat("Neural Network AUC (Resampled Data):", auc_resampled, "\n")
 
 
-# --- Simple Removal Analysis ---
+
+# ---- Simple Removal Analysis ----
 
 # Initialize a data frame to store performance metrics for each feature
 feature_performance <- data.frame(Feature = colnames(trainData)[-which(colnames(trainData) == "Churn")],
@@ -218,7 +225,8 @@ ggplot(feature_performance, aes(x = reorder(Feature, Delta_AUC), y = Delta_AUC))
        x = "Feature", y = "AUC Drop (Delta)") +
   theme_minimal()
 
-# --- Feature Correlation Analysis ---
+
+# ---- Feature Correlation Analysis ----
 
 # Separate numerical and categorical features
 numerical_features <- select_if(trainData, is.numeric)
@@ -267,56 +275,8 @@ ggplot(correlation_output, aes(x = reorder(Feature, AbsoluteCorrelation), y = Ab
   theme_minimal()
 
 
-# --- Neural Network with RSNNS ---
 
-# Convert categorical variables to dummy variables
-train_data_numeric <- model.matrix(~ . - 1, data = trainData[, -which(names(trainData) == "Churn")])  # Remove intercept
-test_data_numeric <- model.matrix(~ . - 1, data = testData[, -which(names(testData) == "Churn")])    # Remove intercept
-
-# Ensure the labels are numeric binary
-train_labels <- as.numeric(trainData$Churn) - 1
-test_labels <- as.numeric(testData$Churn) - 1
-
-
-# Train the neural network with 2 hidden layers and adjusted neurons
-nn_model_adjusted <- mlp(
-  x = train_data_numeric, y = train_labels,
-  size = c(10, 5),   # Two hidden layers: 10 neurons in the first, 5 in the second
-  maxit = 300,
-  learnFuncParams = c(0.1),  # Learning rate
-  hiddenActFunc = "Act_Logistic"  # Default logistic activation function
-)
-
-# Predict on the test data
-nn_pred_adjusted <- predict(nn_model_adjusted, test_data_numeric)
-nn_pred_class <- as.factor(ifelse(nn_pred_adjusted > 0.5, 1, 0))
-
-# Evaluate the model
-conf_matrix_adjusted <- confusionMatrix(nn_pred_class, as.factor(test_labels))
-print(conf_matrix_adjusted)
-
-# Extract values from the confusion matrix
-confusion_matrix <- table(test_labels, nn_pred_class)
-
-TP <- confusion_matrix[2, 2]  # True Positives
-FN <- confusion_matrix[2, 1]  # False Negatives
-FP <- confusion_matrix[1, 2]  # False Positives
-TN <- confusion_matrix[1, 1]  # True Negatives
-
-# Calculate the metrics
-accuracy <- (TP + TN) / (TP + TN + FP + FN)
-sensitivity <- TP / (TP + FN)  # Recall
-specificity <- TN / (TN + FP)
-precision <- TP / (TP + FP)
-
-# Print the metrics
-cat("Accuracy:", round(accuracy, 4), "\n")
-cat("Sensitivity (Recall):", round(sensitivity, 4), "\n")
-cat("Specificity:", round(specificity, 4), "\n")
-cat("Precision:", round(precision, 4), "\n")
-
-
-# --- Experimenting with Learning Rate and Maximum Iterations ---
+# ---- Experimenting with Learning Rate and Maximum Iterations ----
 learning_rates <- c(0.05, 0.1, 0.2, 0.3)  # Learning rates to test
 max_iterations <- c(300, 500, 1000)  # Maximum iterations to test
 
@@ -389,7 +349,8 @@ ggplot(tuning_results, aes(x = MaxIterations, y = Accuracy, color = as.factor(Le
   theme_minimal()
 
 
-# --- Threshold Analysis ---
+
+# ---- Threshold Analysis ----
 # Define thresholds to test
 thresholds <- seq(0.1, 0.9, by = 0.05)
 
@@ -447,3 +408,4 @@ ggplot(threshold_results, aes(x = Threshold)) +
        y = "Metrics",
        color = "Metrics") +
   theme_minimal()
+
