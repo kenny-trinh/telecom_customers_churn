@@ -4,16 +4,6 @@ library(gridExtra)
 library(dplyr)
 library(corrplot)
 
-# Churn distribution
-churn_dist <- ggplot(d.cleaned_telecom_customer_churn, aes(x = Churn, fill = Churn)) +
-  geom_bar() +
-  geom_text(stat='count', aes(label=..count..), position=position_dodge(width=0.9), vjust=-0.5) +
-  theme_minimal() +
-  labs(title = "Distribution of Customer Churn", x = "Churn Status", y = "Number of Customers")
-
-# Display
-print(churn_dist)
-
 # Apply log transformation
 d.cleaned_telecom_customer_churn <- d.cleaned_telecom_customer_churn %>%
   mutate(log_MonthlyCharges = log(MonthlyCharges + 1),
@@ -38,6 +28,17 @@ p4 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = log_TotalCharges)) +
 
 grid.arrange(p1, p2, p3, p4, ncol = 2)
 
+
+# Churn distribution
+churn_dist <- ggplot(d.cleaned_telecom_customer_churn, aes(x = Churn, fill = Churn)) +
+  geom_bar() +
+  geom_text(stat='count', aes(label=..count..), position=position_dodge(width=0.9), vjust=-0.5) +
+  theme_minimal() +
+  labs(title = "Distribution of Customer Churn", x = "Churn Status", y = "Number of Customers")
+
+# Display
+print(churn_dist)
+
 # Churn Rate by Contract Type:
 contract_churn <- ggplot(d.cleaned_telecom_customer_churn, aes(x = Contract, fill = Churn)) +
   geom_bar(position = "fill") +
@@ -55,6 +56,12 @@ charges_tenure <- ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = M
   labs(title = "Monthly Charges vs Tenure (Smoothed)", x = "Tenure (months)", y = "Monthly Charges ($)")
 
 # Display
+print(charges_tenure)
+
+# Arrange all plots in a grid: Bar plots on the left, Line plot on the right
+grid.arrange(churn_dist, contract_churn, charges_tenure, 
+             layout_matrix = rbind(c(1,2), 
+                                   c(3,3)))
 
 # Selecting numeric variables
 numeric_vars <- d.cleaned_telecom_customer_churn %>%
