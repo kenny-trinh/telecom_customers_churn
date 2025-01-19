@@ -30,6 +30,7 @@ required_packages <- c(
   'nnet',
   'pROC',
   'ggplot2',
+  'corrplot',
   'RSNNS',
   'e1071',
   'mgcv',
@@ -102,9 +103,9 @@ To address these challenges, TeleConnect has embraced a multi-model machine lear
 
 By integrating machine learning models into its decision-making processes, TeleConnect can:
 
--   **Reduce churn** by predicting at-risk customers and proactively addressing their concerns.
--   **Maximize revenue** through optimized pricing and smarter service bundling.
--   **Improve retention** by understanding what drives tenure and customer satisfaction.
+- **Reduce churn** by predicting at-risk customers and proactively addressing their concerns.
+- **Maximize revenue** through optimized pricing and smarter service bundling.
+- **Improve retention** by understanding what drives tenure and customer satisfaction.
 
 ## Dataset Overview
 
@@ -191,19 +192,20 @@ d.cleaned_telecom_customer_churn <- d.cleaned_telecom_customer_churn %>%
     -   Payment methods diversity indicates billing flexibility
     -   Relationship between charges and service subscriptions
 
-## Exploratory Data Analysis:
+# Exploratory Data Analysis
 
 The exploratory data analysis focuses on understanding customer churn, service adoption, and tenure patterns. This section includes visual and statistical analysis to identify trends and factors influencing churn and customer behavior.
 
-Data Overview
+**Data Overview:**
+
 The dataset contains 7,043 customers with key features like:
-Demographics (Tenure, Services Count)
-Contract & Payment details (Contract Type, MonthlyCharges)
-Churn Status (Target Variable)
+- Demographics (Tenure, Services Count)
+- Contract & Payment details (Contract Type, MonthlyCharges)
+- Churn Status (Target Variable)
 
 **Log-Transformation of Charges (MonthlyCharges & TotalCharges)**
 
-```{r EDA-Visualizations, echo=FALSE, results='show', warning=FALSE, cache=TRUE}
+```{r EDA-Histograms-LogTransform, echo=FALSE, results='show', warning=FALSE, cache=TRUE}
 # Load required libraries if not already loaded
 library(ggplot2)
 library(gridExtra)
@@ -234,12 +236,13 @@ p4 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = log_TotalCharges)) +
 
 grid.arrange(p1, p2, p3, p4, ncol = 2)
 ```
+
 - TotalCharges and MonthlyCharges were right-skewed, requiring log-transformation.
 - After transformation, the distributions became more normal, improving model assumptions
 
 **Key Findings from EDA**
 
-```{r EDA-Visualizations, echo=FALSE, results='show', warning=FALSE, cache=TRUE}
+```{r EDA-Boxplots, echo=FALSE, results='show', warning=FALSE, cache=TRUE}
 
 # Churn distribution
 churn_dist <- ggplot(d.cleaned_telecom_customer_churn, aes(x = Churn, fill = Churn)) +
@@ -282,7 +285,7 @@ grid.arrange(churn_dist, contract_churn, charges_tenure,
   
 **Correlation Analysis with numeric variables **
 
-```{r EDA-Visualizations, echo=FALSE, results='show', warning=FALSE, cache=TRUE}
+```{r EDA-CorrelationMatrix, echo=FALSE, results='show', warning=FALSE, cache=TRUE}
 # Selecting numeric variables
 numeric_vars <- d.cleaned_telecom_customer_churn %>%
   select(tenure, log_MonthlyCharges, log_TotalCharges, services_count) %>%
@@ -295,8 +298,10 @@ corr_matrix <- cor(numeric_vars)
 corrplot(corr_matrix, method = "color", type = "upper")
 
 ```
+
 **Correlation Analysis**
-  - TotalCharges and Tenure have a very high correlation (r ≈ 0.98), meaning one could be removed in some           models   to avoid multicollinearity.
+
+- TotalCharges and Tenure have a very high correlation (r $\approx$ 0.98), meaning one could be removed in some models to avoid multicollinearity.
 
 Based on these findings, we proceed to the methodology section, where we implement various models to predict churn and evaluate their effectiveness.
 
@@ -1359,6 +1364,7 @@ ggplot2::ggplot(architecture_results, aes(x = Architecture)) +
   labs(title = "Performance Metrics by Architecture", x = "Architecture", y = "Metrics") +
   theme_minimal()
 ```
+
 ```{r NN-AddingDropoutRegularization, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 nn_model_dropout <- mlp(
   x = train_data_numeric, 

@@ -9,6 +9,7 @@ required_packages <- c(
   'nnet',
   'pROC',
   'ggplot2',
+  'corrplot',
   'RSNNS',
   'e1071',
   'mgcv',
