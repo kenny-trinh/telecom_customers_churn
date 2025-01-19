@@ -867,33 +867,9 @@ Both models performed well in predicting churn, with GAM offering additional fle
 
 TeleConnect aims to leverage Neural Network (NN) models to enhance customer retention by identifying churn-prone customers with high accuracy. The NN model was trained and tested to predict churn outcomes using customer behavioral and demographic data. This analysis focuses on understanding key metrics like sensitivity, specificity, and precision to refine TeleConnect's retention strategies.
 
-## Recommended Neural Network Configurations
+## Data Preparation for Neural Network
 
-| **Config.** | **Size** | **Decay** | **Accuracy** | **Sensitivity** | **Specificity** | **Balanced Accuracy** | **Kappa** |
-|--------|--------|--------|--------|--------|--------|--------|--------|
-| **1** | **2** | **0.04** | **81.38%** | **91.10%** | **54.42%** | **72.76%** | **0.4879** |
-| **2** | 1 | 0.04 | 80.88% | 90.04% | 55.50% | 72.77% | 0.4813 |
-| **3** | 7 | 0.04 | 79.74% | 88.30% | 56.03% | 72.17% | 0.4603 |
-| **4** | 5 | 0.04 | 80.60% | 90.14% | 54.16% | 72.15% | 0.4707 |
-
-**Comparison:**
-
-- Configuration 1:
-  - Best overall.
-  - Has the best balance across all metrics.
-- Configuration 2:
-  - High simplicity.
-  - Simple with strong performance.
-- Configuration 3:
-  - Best trade-off.
-  - Balanced with slightly higher specificity.
-- Configuration 4:
-  - Moderate complexity.
-  - Great balance.
-
-## Finding the most optimal Neural Network Configuration
-
-```{r NN-FindOptimalConfiguration, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+```{r NN-DataPreparation, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Load necessary libraries
 library(caret)
 library(nnet)
@@ -945,7 +921,52 @@ trainData[, c("tenure", "MonthlyCharges", "TotalCharges")] <- predict(
   preProc, trainData[, c("tenure", "MonthlyCharges", "TotalCharges")])
 testData[, c("tenure", "MonthlyCharges", "TotalCharges")] <- predict(
   preProc, testData[, c("tenure", "MonthlyCharges", "TotalCharges")])
+```
 
+The data is prepared for the Neural Network model by splitting it into training and testing sets and scaling numerical features for consistent input ranges. This step ensures the NN model can effectively learn patterns.
+
+
+
+## Training the Neural Network
+
+### Exploring different Neural Network Configurations
+
+| **Config.** | **Size** | **Decay** | **Accuracy** | **Sensitivity** | **Specificity** | **Balanced Accuracy** | **Kappa** |
+|--------|--------|--------|--------|--------|--------|--------|--------|
+| **1** | **2** | **0.04** | **81.38%** | **91.10%** | **54.42%** | **72.76%** | **0.4879** |
+| **2** | 1 | 0.04 | 80.88% | 90.04% | 55.50% | 72.77% | 0.4813 |
+| **3** | 7 | 0.04 | 79.74% | 88.30% | 56.03% | 72.17% | 0.4603 |
+| **4** | 5 | 0.04 | 80.60% | 90.14% | 54.16% | 72.15% | 0.4707 |
+
+**Comparison:**
+
+- Configuration 1:
+  - Best overall.
+  - Has the best balance across all metrics.
+- Configuration 2:
+  - High simplicity.
+  - Simple with strong performance.
+- Configuration 3:
+  - Best trade-off.
+  - Balanced with slightly higher specificity.
+- Configuration 4:
+  - Moderate complexity.
+  - Great balance.
+  
+Key Insights from Neural Network Configurations:
+
+1.  **Best Overall Model**:
+    -   **Size = 2, Decay = 0.04** delivers the best trade-off between sensitivity (91.10%) and specificity (54.42%), making it ideal for practical deployment.
+    -   Balances customer identification (high sensitivity) with resource management (moderate specificity).
+2.  **Simpler Options**:
+    -   **Size = 1, Decay = 0.04** is a lightweight model for quicker predictions while maintaining strong accuracy.
+3.  **Focused Trade-offs**:
+    -   **Size = 7, Decay = 0.04** provides higher specificity for targeted retention campaigns.
+    -   Suitable for businesses with resource constraints aiming to minimize false positives.
+
+### Training with an optimal configuration
+
+```{r NN-TrainNN, echo=TRUE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Train the Neural Network
 nn_model <- nnet(
   Churn ~ ., data = trainData,
@@ -954,6 +975,13 @@ nn_model <- nnet(
 
 # Predict on the test set
 nn_prob <- predict(nn_model, testData, type = "raw")
+```
+
+A Neural Network is trained with 2 hidden neurons (size) and a regularization parameter (decay) of 0.04. The decay helps prevent overfitting by penalizing large weights. Predictions are then made on the test set to evaluate performance.
+
+## Evaluating the Model
+
+```{r NN-EvaluateModel, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 
 # Evaluate the model
 # Confusion matrix
@@ -967,21 +995,11 @@ nn_roc <- roc(testData$Churn, as.numeric(nn_prob),
 plot(nn_roc, col = "blue", main = "Neural Network ROC Curve")
 auc_value <- auc(nn_roc)
 cat("Neural Network AUC:", auc_value, "\n")
-
 ```
 
-## Key Insights from Neural Network Configurations
+The Neural Network's performance is evaluated using a confusion matrix and ROC curve. The Area Under the Curve (AUC) quantifies how well the model distinguishes between churners and non-churners.
 
-1.  **Best Overall Model**:
-    -   **Size = 2, Decay = 0.04** delivers the best trade-off between sensitivity (91.10%) and specificity (54.42%), making it ideal for practical deployment.
-    -   Balances customer identification (high sensitivity) with resource management (moderate specificity).
-2.  **Simpler Options**:
-    -   **Size = 1, Decay = 0.04** is a lightweight model for quicker predictions while maintaining strong accuracy.
-3.  **Focused Trade-offs**:
-    -   **Size = 7, Decay = 0.04** provides higher specificity for targeted retention campaigns.
-    -   Suitable for businesses with resource constraints aiming to minimize false positives.
-
-## Balancing configuration with adjusted threshold
+## Threshold Adjustment
 
 ```{r NN-ThresholdAdjustment, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Adjust the threshold to improve specificity
@@ -1001,9 +1019,17 @@ auc_value_adjusted <- auc(nn_roc_adjusted)
 cat("Neural Network AUC (Adjusted Threshold):", auc_value_adjusted, "\n")
 ```
 
+The decision threshold for classifying churners is adjusted to 0.54, focusing on improving specificity (reducing false positives) while maintaining acceptable sensitivity. The updated confusion matrix is then evaluated.
+
+\newpage
+
 ## Final NN Model Performance (Resampling with Weight Ratio)
 
 ```{r NN-ResamplingWithWeightRatio, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
+library(nnet)
+library(caret)
+library(pROC)
+
 # Assign weights to each class (focus on minority class)
 weights <- ifelse(trainData$Churn == 1, 1.5, 1)
 
@@ -1011,7 +1037,7 @@ weights <- ifelse(trainData$Churn == 1, 1.5, 1)
 trainData_resampled <- trainData[rep(1:nrow(trainData), times = weights), ]
 
 # Train a Neural Network model on the resampled data
-nn_model_resampled <- nnet(
+nn_model_resampled <- nnet::nnet(
   Churn ~ ., data = trainData_resampled,
   size = 2, decay = 0.04, maxit = 300, trace = FALSE
 )
@@ -1021,16 +1047,19 @@ nn_prob_resampled <- predict(nn_model_resampled, testData, type = "raw")
 
 # Evaluate model performance
 nn_pred_resampled <- as.factor(ifelse(nn_prob_resampled > 0.5, 1, 0))
-conf_matrix_resampled <- confusionMatrix(nn_pred_resampled, testData$Churn)
+conf_matrix_resampled <- caret::confusionMatrix(nn_pred_resampled, testData$Churn)
 print(conf_matrix_resampled)
 
 # Plot the ROC Curve for the resampled model
-nn_roc_resampled <- roc(testData$Churn, as.numeric(nn_prob_resampled), levels = rev(levels(testData$Churn)))
+nn_roc_resampled <- pROC::roc(testData$Churn, as.numeric(nn_prob_resampled), levels = rev(levels(testData$Churn)))
 plot(nn_roc_resampled, col = "blue",
      main = "Neural Network ROC Curve (Resampled Data)")
+
 auc_resampled <- auc(nn_roc_resampled)
 cat("Neural Network AUC (Resampled Data):", auc_resampled, "\n")
 ```
+
+\newpage
 
 ## Neural Network with RSNNS
 
@@ -1081,6 +1110,7 @@ cat("Sensitivity (Recall):", round(sensitivity, 4), "\n")
 cat("Specificity:", round(specificity, 4), "\n")
 cat("Precision:", round(precision, 4), "\n")
 ```
+
 ## Neural Network with RSNNS: Trying Alternative Activation Functions
 
 ```{r NN-Conclusion, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
@@ -1168,6 +1198,7 @@ cat("Specificity:", round(specificity_relu, 4), "\n")
 cat("Precision:", round(precision_relu, 4), "\n")
 
 ```
+
 ## Neural Network with Regularization and Adjusted Architecture
 
 ```{r NN-RegularizationAndAdjustedArchitecture, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
@@ -1214,9 +1245,16 @@ cat("Sensitivity (Recall):", round(sensitivity, 4), "\n")
 cat("Specificity:", round(specificity, 4), "\n")
 cat("Precision:", round(precision, 4), "\n")
 ```
+
+\newpage
+
+
 ## Neural Network Experimentation with Different Architectures
 
-```{r NN-ExperimentationWithDifferentArchitectures, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
+```{r NN-ExperimentationWithDifferentArchitectures, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=FALSE}
+library(RSNNS)
+library(ggplot2)
+
 # Define a list of architectures to test
 architectures <- list(
   c(20, 10, 5),
@@ -1238,7 +1276,7 @@ for (arch in architectures) {
   cat("Testing architecture:", paste(arch, collapse = "-"), "\n")
   
   # Train the model with the given architecture
-  nn_model <- mlp(
+  nn_model <- RSNNS::mlp(
     x = train_data_numeric, 
     y = train_labels,
     size = arch,  # Set architecture
@@ -1280,7 +1318,7 @@ for (arch in architectures) {
 print(architecture_results)
 
 # Visualize the results
-ggplot(architecture_results, aes(x = Architecture)) +
+ggplot2::ggplot(architecture_results, aes(x = Architecture)) +
   geom_bar(aes(y = Accuracy), stat = "identity", fill = "steelblue") +
   geom_point(aes(y = Sensitivity), color = "red", size = 3) +
   geom_point(aes(y = Specificity), color = "green", size = 3) +
@@ -1412,7 +1450,6 @@ ggplot(threshold_results, aes(x = Threshold)) +
 
 ```
 
-
 ## Evaluation Metrics
 
 1. **Confusion Matrix Results**:
@@ -1426,9 +1463,6 @@ ggplot(threshold_results, aes(x = Threshold)) +
     - **AUC**: 0.8446, indicating excellent model performance in distinguishing between churners and non-churners.
 4. **Precision**:
     - ~60%, ensuring the majority of predicted churners are valid.
-
-
-
 
 
 ## Business Insights from Neural Network Results
@@ -1467,7 +1501,7 @@ The Neural Network model demonstrates robust capabilities in identifying churn-p
 *Kenny Trinh took the lead on the Support Vector Machine model.*
 
 ## Context and Objective
-*add here*
+The Support Vector Machine (SVM) model is employed to predict customer churn by efficiently separating churners and non-churners, even in complex and non-linear data scenarios. This analysis leverages SVM to classify customers with high accuracy, ensuring robust segmentation into low, medium, and high-risk churn groups. The objective is to provide actionable insights for targeted retention strategies while identifying critical factors influencing churn probability.
 
 ## Model Performance Metrics
 
