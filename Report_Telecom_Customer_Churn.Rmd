@@ -19,7 +19,7 @@ header-includes:
 \pagenumbering{arabic}
 
 ```{r Setup, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
-knitr::opts_chunk$set(echo = FALSE, fig.width = 8, fig.height = 3, fig.align = "center" )
+knitr::opts_chunk$set(echo = FALSE, fig.width = 6, fig.height = 2, fig.align = "center" )
 
 # List of required packages
 required_packages <- c(
@@ -112,7 +112,7 @@ The dataset encompasses comprehensive customer information including:
 
 To categorize the variables in your dataset into **continuous**, **categorical**, **count**, and **binomial**, let’s analyze them step by step:
 
-```{r DatasetOverview, echo=FALSE, results='asis', cache=TRUE}
+```{r DatasetOverview, echo=FALSE, results='show', cache=TRUE}
 # Show the cleaned data as a table
 d.cleaned_telecom_customer_churn <- read_csv(
   file.path(cleaned_data_dir, "telecom_customers_churn_cleaned.csv")
@@ -589,8 +589,16 @@ summary(glm_quasi)
 
 Customer **tenure** is strongly influenced by contract type, internet service, and payment methods, with significant interaction effects between these factors. Long-term contracts and bundled internet services emerge as the most effective strategies to enhance customer retention.
 
+\newpage
+
 # GLM-Binomial (Logistic Regression) & GAM
 *Sarp Koc took the lead on the GLM-Binomial and GAM models.*
+
+## Context and Objective
+
+The GLM-Binomial (Logistic Regression) and Generalized Additive Model (GAM) are used to predict customer churn and explore its underlying drivers. These models provide a foundation for identifying at-risk customers and evaluating key variables such as tenure, contract type, and payment methods. The analysis focuses on determining whether non-linear relationships exist in the data and comparing the performance of GLM and GAM in capturing these dynamics. By leveraging both linear and non-linear approaches, this section aims to enhance TeleConnect's retention strategies through actionable insights.
+
+## Data Preparation and Visualization
 
 First let's prepare the data for the visualization and modelling.
 
@@ -624,7 +632,7 @@ Let's plot some results to understand the data better.
 
 ## Plot: Tenure vs. TotalCharges by Churn
 
-```{r GLM-Binomial-GAM-Visualizations, echo=FALSE, results='asis', cache=TRUE}
+```{r GLM-Binomial-GAM-Visualizations, echo=FALSE, results='show', cache=TRUE}
 # Ensure necessary libraries are installed
 if(!require(ggplot2)) install.packages("ggplot2")
 
@@ -858,7 +866,7 @@ GAM has a slightly lower AIC (5809.896) than GLM (5828.536), further supporting 
 
 ## Conclusion
 
-Both models performed well in predicting churn, with GAM offering additional flexibility to capture non-linear relationships. While the non-linearity in some variables, like tenure, was not significant, GAM successfully identified a meaningful non-linear relationship with TotalCharges. The results highlight that customers are more likely to churn if they use fiber optic internet, pay via electronic checks, lack online security or tech support, or are senior citizens. Conversely, churn risk is lower for DSL users, those with higher tenure and total charges, and customers on longer-term contracts
+Both models performed well in predicting churn, with GAM offering additional flexibility to capture non-linear relationships. While the non-linearity in some variables, like tenure, was not significant, GAM successfully identified a meaningful non-linear relationship with TotalCharges. The results highlight that customers are more likely to churn if they use fiber optic internet, pay via electronic checks, lack online security or tech support, or are senior citizens. Conversely, churn risk is lower for DSL users, those with higher tenure and total charges, and customers on longer-term contracts.
 
 # Neural Network (NN)
 *Kenny Trinh took the lead on the Neural Network model.*
@@ -1025,7 +1033,7 @@ The decision threshold for classifying churners is adjusted to 0.54, focusing on
 
 ## Final NN Model Performance (Resampling with Weight Ratio)
 
-```{r NN-ResamplingWithWeightRatio, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
+```{r NN-ResamplingWithWeightRatio, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 library(nnet)
 library(caret)
 library(pROC)
@@ -1063,7 +1071,7 @@ cat("Neural Network AUC (Resampled Data):", auc_resampled, "\n")
 
 ## Neural Network with RSNNS
 
-```{r NN-RSNNS, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
+```{r NN-RSNNS, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Convert categorical variables to dummy variables
 train_data_numeric <- model.matrix(~ . - 1, data = trainData[, -which(names(trainData) == "Churn")])  # Remove intercept
 test_data_numeric <- model.matrix(~ . - 1, data = testData[, -which(names(testData) == "Churn")])    # Remove intercept
@@ -1251,7 +1259,7 @@ cat("Precision:", round(precision, 4), "\n")
 
 ## Neural Network Experimentation with Different Architectures
 
-```{r NN-ExperimentationWithDifferentArchitectures, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=FALSE}
+```{r NN-ExperimentationWithDifferentArchitectures, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 library(RSNNS)
 library(ggplot2)
 
@@ -1326,7 +1334,7 @@ ggplot2::ggplot(architecture_results, aes(x = Architecture)) +
   labs(title = "Performance Metrics by Architecture", x = "Architecture", y = "Metrics") +
   theme_minimal()
 ```
-```{r NN-AddingDropoutRegularization, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
+```{r NN-AddingDropoutRegularization, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 nn_model_dropout <- mlp(
   x = train_data_numeric, 
   y = train_labels,
@@ -1389,7 +1397,7 @@ cat("Precision:", round(precision_thresh, 4), "\n")
 
 ## Threshold Analysis and Visualization
 
-```{r NN-ThresholdAnalysis, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
+```{r NN-ThresholdAnalysis, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Define thresholds to test
 thresholds <- seq(0.1, 0.9, by = 0.05)
 
@@ -1565,21 +1573,34 @@ predictions <- predict(svm_model, testData)
 # Evaluate the model
 confusionMatrix(predictions, testData$Churn)
 
-# Tune the SVM model for optimal hyperparameters
-set.seed(123)
-tuned_parameters <- tune(svm, Churn ~ ., data = trainData,
-                         ranges = list(cost = 10, 
-                                       gamma = 0.1),
-                         probability = TRUE)
+# Paths to save tuned model and parameters
+tuned_model_path <- "output/svm_tuned_model.rds"
+tuned_params_path <- "output/svm_tuned_parameters.rds"
 
-# Best model
-best_model <- tuned_parameters$best.model
+# Tune the SVM model for optimal hyperparameters or load if already saved
+set.seed(123)
+if (!file.exists(tuned_model_path) || !file.exists(tuned_params_path)) {
+  tuned_parameters <- tune(svm, Churn ~ ., data = trainData,
+                           ranges = list(cost = c(0.1, 1, 10), 
+                                         gamma = c(0.01, 0.1, 1)),
+                           probability = TRUE)
+  best_model <- tuned_parameters$best.model
+  saveRDS(best_model, tuned_model_path)
+  saveRDS(tuned_parameters, tuned_params_path)
+} else {
+  best_model <- readRDS(tuned_model_path)
+  tuned_parameters <- readRDS(tuned_params_path)
+}
 
 # Make predictions with the best model
-best_predictions <- predict(best_model, testData)
+best_predictions <- predict(best_model, testData, probability = TRUE)
 
 # Evaluate the best model
-confusionMatrix(best_predictions, testData$Churn)
+conf_matrix <- confusionMatrix(best_predictions, testData$Churn)
+print(conf_matrix)
+
+# Extract probabilities
+probabilities <- attr(predict(best_model, testData, probability = TRUE), "probabilities")
 
 # Check the best parameters chosen during tuning
 best_parameters <- tuned_parameters$best.parameters
@@ -1644,15 +1665,18 @@ Using the trained SVM model, churn probabilities were calculated for each custom
 svm_model <- svm(Churn ~ ., data = trainData, kernel = "radial", 
                  cost = 1, gamma = 0.1, probability = TRUE)
 
+if (!file.exists("output/svm_tuned_model.rds")) {
 # run with best parameters cost 10 and gamma 0.1 instead of tuning it again
 tuned_parameters <- tune(svm, Churn ~ ., data = trainData,
                          ranges = list(cost = 10, 
                                        gamma = 0.1),
                          probability = TRUE)
-
+  saveRDS(tuned_parameters$best.model, "output/svm_tuned_model.rds")
+} else {
 # Best model with probabilities
-best_model <- tuned_parameters$best.model
-
+#best_model <- tuned_parameters$best.model
+  best_model <- readRDS("output/svm_tuned_model.rds")
+}
 
 # Check the best parameters chosen during tuning
 best_parameters <- tuned_parameters$best.parameters
