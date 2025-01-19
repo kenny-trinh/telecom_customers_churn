@@ -205,7 +205,7 @@ The dataset contains 7,043 customers with key features like:
 
 **Log-Transformation of Charges (MonthlyCharges & TotalCharges)**
 
-```{r EDA-Histograms-LogTransform, echo=FALSE, results='show', warning=FALSE, cache=TRUE}
+```{r EDA-Histograms-LogTransform, echo=FALSE, results='show', fig.width = 8, fig.height = 5, warning=FALSE, cache=TRUE}
 # Load required libraries if not already loaded
 library(ggplot2)
 library(gridExtra)
@@ -242,7 +242,7 @@ grid.arrange(p1, p2, p3, p4, ncol = 2)
 
 **Key Findings from EDA**
 
-```{r EDA-Boxplots, echo=FALSE, results='show', warning=FALSE, cache=TRUE}
+```{r EDA-Boxplots, echo=FALSE, results='show', fig.width = 8, fig.height = 3, warning=FALSE, cache=TRUE}
 
 # Churn distribution
 churn_dist <- ggplot(d.cleaned_telecom_customer_churn, aes(x = Churn, fill = Churn)) +
@@ -285,7 +285,7 @@ grid.arrange(churn_dist, contract_churn, charges_tenure,
   
 **Correlation Analysis with numeric variables **
 
-```{r EDA-CorrelationMatrix, echo=FALSE, results='show', warning=FALSE, cache=TRUE}
+```{r EDA-CorrelationMatrix, echo=FALSE, results='show', fig.width = 5, fig.height = 5, warning=FALSE, cache=TRUE}
 # Selecting numeric variables
 numeric_vars <- d.cleaned_telecom_customer_churn %>%
   select(tenure, log_MonthlyCharges, log_TotalCharges, services_count) %>%
@@ -376,7 +376,7 @@ summary(lm_initial)
 
 **Monthly Charges against Tenure:**
 
-```{r LM-Visualizations, echo=FALSE, results='asis', cache=TRUE}
+```{r LM-Visualizations, echo=FALSE, results='show', cache=TRUE}
 # Effect of Internet Service with smoother
 ggplot(d.cleaned_telecom_customer_churn, 
        aes(x = tenure, y = log(MonthlyCharges), color = InternetService)) +
@@ -394,7 +394,7 @@ ggplot(d.cleaned_telecom_customer_churn,
 
 **Monthly Charges vs Tenure:**
 
-```{r LM-Visualizations2, echo=FALSE, results='asis', cache=TRUE}
+```{r LM-Visualizations2, echo=FALSE, results='show', cache=TRUE}
 # Effect of Contract with smoother
 ggplot(d.cleaned_telecom_customer_churn, 
        aes(x = tenure, y = log(MonthlyCharges), color = Contract)) +
@@ -1059,8 +1059,6 @@ cat("Neural Network AUC (Adjusted Threshold):", auc_value_adjusted, "\n")
 
 The decision threshold for classifying churners is adjusted to 0.54, focusing on improving specificity (reducing false positives) while maintaining acceptable sensitivity. The updated confusion matrix is then evaluated.
 
-\newpage
-
 ## Final NN Model Performance (Resampling with Weight Ratio)
 
 ```{r NN-ResamplingWithWeightRatio, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
@@ -1096,8 +1094,6 @@ plot(nn_roc_resampled, col = "blue",
 auc_resampled <- auc(nn_roc_resampled)
 cat("Neural Network AUC (Resampled Data):", auc_resampled, "\n")
 ```
-
-\newpage
 
 ## Neural Network with RSNNS
 
@@ -1283,9 +1279,6 @@ cat("Sensitivity (Recall):", round(sensitivity, 4), "\n")
 cat("Specificity:", round(specificity, 4), "\n")
 cat("Precision:", round(precision, 4), "\n")
 ```
-
-\newpage
-
 
 ## Neural Network Experimentation with Different Architectures
 
