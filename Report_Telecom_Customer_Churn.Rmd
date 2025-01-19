@@ -113,7 +113,9 @@ The dataset encompasses comprehensive customer information including:
 
 To categorize the variables in your dataset into **continuous**, **categorical**, **count**, and **binomial**, let’s analyze them step by step:
 
-```{r DatasetOverview, echo=FALSE, results='show', cache=TRUE}
+```{r DatasetOverview, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=FALSE}
+library(readr)
+
 # Show the cleaned data as a table
 d.cleaned_telecom_customer_churn <- read_csv(
   file.path(cleaned_data_dir, "telecom_customers_churn_cleaned.csv")
@@ -138,14 +140,12 @@ print(variable_types)
 
 #creating count datatypes:
 # 1. Create service count variable (including all services)
-d.cleaned_telecom_customer_churn <- d.cleaned_telecom_customer_churn %>%
-  mutate(
-    # Count of all services
-    services_count = rowSums(
-      select(., PhoneService, MultipleLines, InternetService,
-             OnlineSecurity, OnlineBackup, DeviceProtection,
-             TechSupport, StreamingTV, StreamingMovies) != "No")
-  )
+d.cleaned_telecom_customer_churn$services_count <- rowSums(
+  dplyr::select(d.cleaned_telecom_customer_churn,
+                PhoneService, MultipleLines, InternetService, OnlineSecurity,
+                OnlineBackup, DeviceProtection, TechSupport, StreamingTV,
+                StreamingMovies) != "No"
+)
 ```
 
 **1. Continuous Variables:**
@@ -320,6 +320,7 @@ In our analysis, we employed the following machine learning approaches:
 5.  **Neural Network (NN)**: To recognize complex patterns in customer churn
 6.  **Support Vector Machine (SVM)**: To segment customers based on churn risk and grouping them.
 
+\newpage
 
 # Linear Model (LM)
 *Sabin Pun took the lead on the linear model.*
@@ -328,7 +329,7 @@ To address **TeleConnect’s price sensitivity challenge**, we began by building
 
 The response variable for this linear model is:
 
--   **MonthlyCharges**: The amount customers pay per month(continuous)
+- **MonthlyCharges**: The amount customers pay per month(continuous)
 
 The predictors used are:
 1.  **Tenure**: Number of months the customer has been with the company.
@@ -340,7 +341,7 @@ The predictors used are:
 
 Linear Model to predict monthly charges:
 
-```{r LM-Model, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+```{r LM-Model, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
 # Load required libraries
 library(ggplot2)
 
@@ -364,15 +365,22 @@ summary(lm_initial)
 
 **Coefficient Interpretation**:
 
-| **Predictor** | **Effect on Log(Monthly Charges)** | **Interpretation** |
-| --- | --- | --- |
-| **Tenure** | `+0.00064` per month | Longer tenure leads to slightly higher monthly charges. |
-| **Internet Service (Fiber Optic)** | `+0.347` (**+41.5%**) | Customers with fiber optic internet pay **41.5% more** than DSL users. |
-| **Internet Service (No Service)** | `-0.863` (**-57.8%**) | Customers with **no internet service** pay **57.8% less** than DSL users. |
-| **Contract (Two Years)** | `+0.00882` (**+9.2%**) | Two-year contracts **increase monthly charges by ~9.2%**. |
-| **Additional Services (Streaming, Security, Backup, Tech Support, Device Protection, Phone Service)** | **Increase charges by 6% - 55%** | Customers with **one or more additional services pay significantly more**, with Phone Service having the biggest impact (~55%). |
+| **Predictor** | **Effect on Log(Monthly Charges)** |
+| --- | --- |
+| **Tenure** | `+0.00064` per month |
+| **Internet Service (Fiber Optic)** | `+0.347` (**+41.5%**) |
+| **Internet Service (No Service)** | `-0.863` (**-57.8%**) |
+| **Contract (Two Years)** | `+0.00882` (**+9.2%**) |
+| **Additional Services** | **Increase charges by 6% - 55%** |
  
 : Coefficient interpretation for the linear model
+
+**Interpretation:**
+
+- **Tenure**: Longer tenure slightly increases monthly charges.
+- **Internet Service**: Fiber optic users pay 41.5% more than DSL users, while customers with no internet service pay 57.8% less.
+- **Contract Type**: Two-year contracts increase monthly charges by 9.2%.
+- **Additional Services (includes Streaming, Security, Backup, Tech Support, Device Protection and Phone Service)**: Customers with multiple services pay 6% to 55% more, with Phone Service having the most significant impact.
 
 
 ## Visualizing the main effects
@@ -398,7 +406,7 @@ plot2 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = log(Monthl
        x = "Tenure (months)", y = "Log Monthly Charges")
 
 # Arrange plots in grid view
-grid.arrange(plot1, plot2, ncol = 2)
+grid.arrange(plot1, plot2, nrow = 2)
 ```
 
 **Limitations of the Linear Model** 
@@ -409,6 +417,7 @@ While the linear model provides useful insights, it assumes a strictly linear re
 
 Therefore, while LM helps interpret key relationships, we move forward with GLMs, GAMs, and advanced models to improve predictive accuracy.
 
+\newpage
 
 # GLM-Poisson Model
 *Sabin Pun took the lead on the GLM-Poisson model.*
@@ -959,7 +968,7 @@ Key Insights from Neural Network Configurations:
 
 ### Training with an optimal configuration
 
-```{r NN-TrainNN, echo=TRUE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+```{r NN-TrainNN, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Train the Neural Network
 nn_model <- nnet(
   Churn ~ ., data = trainData,
@@ -1517,7 +1526,7 @@ Using the trained SVM model, churn probabilities were calculated for each custom
 1. The SVM model was tuned using radial kernel with the best parameters: `Cost = 10`, `Gamma = 0.1`.
 2. Predictions were generated, including probabilities for both classes (`Yes` for churn, `No` for non-churn).
 
-```{r SVM-ChurnProbabilityPrediction, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+```{r SVM-ChurnProbabilityPrediction, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
 # Load necessary libraries
 library(e1071)
 library(caret)
@@ -1599,13 +1608,15 @@ cat("\nSample of Predicted Probabilities:\n")
 print(head(probabilities))  # Display a sample of probabilities
 ```
 
-Confusion Matrix for Initial SVM Model: The initial model achieved good predictive performance, with a high count of true positives (churners correctly identified) and true negatives (non-churners correctly identified). However, some false negatives indicate a need for improved recall, which was addressed through hyperparameter tuning.
+### Insights
 
-Confusion Matrix for Tuned SVM Model: After tuning, the model showed improvements in recall and precision, with reduced false negatives. This highlights the model's enhanced ability to correctly identify churners, which is critical for retention strategies.
+**Confusion Matrix for Initial SVM Model:** The initial model achieved good predictive performance, with a high count of true positives (churners correctly identified) and true negatives (non-churners correctly identified). However, some false negatives indicate a need for improved recall, which was addressed through hyperparameter tuning.
 
-Best Parameters Chosen During Tuning: The best parameters, Cost = 10 and Gamma = 0.01, were selected during the tuning process. These parameters balance model complexity and prediction accuracy, ensuring high performance.
+**Confusion Matrix for Tuned SVM Model:** After tuning, the model showed improvements in recall and precision, with reduced false negatives. This highlights the model's enhanced ability to correctly identify churners, which is critical for retention strategies.
 
-Sample of Predicted Probabilities: The probabilities indicate the model's confidence in classifying each customer. For example, a probability of 38.59% churn suggests medium churn risk, while a probability of 18.52% churn indicates low churn risk. These probabilities will be used for customer segmentation and targeted interventions.
+**Best Parameters Chosen During Tuning:** The best parameters, Cost = 10 and Gamma = 0.01, were selected during the tuning process. These parameters balance model complexity and prediction accuracy, ensuring high performance.
+
+**Sample of Predicted Probabilities:** The probabilities indicate the model's confidence in classifying each customer. For example, a probability of 38.59% churn suggests medium churn risk, while a probability of 18.52% churn indicates low churn risk. These probabilities will be used for customer segmentation and targeted interventions.
 
 ## Evaluate additional metrics for the tuned model
 
@@ -1649,50 +1660,6 @@ auc_value <- auc(roc_curve)
 cat("Corrected AUC:", auc_value, "\n")
 ```
 
-## Churn Probability Prediction
-
-Using the trained SVM model, churn probabilities were calculated for each customer.
-
-**Steps**:
-
-1. The SVM model was tuned using radial kernel with the best parameters: `Cost = 10`, `Gamma = 0.1`.
-2. Predictions were generated, including probabilities for both classes (`Yes` for churn, `No` for non-churn).
-
-**Sample Output**:
-
-```{r SVM-ChurnProbabilityPredictionOutput, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
-# Train the SVM model with probability estimates enabled
-svm_model <- svm(Churn ~ ., data = trainData, kernel = "radial", 
-                 cost = 1, gamma = 0.1, probability = TRUE)
-
-if (!file.exists("output/svm_tuned_model.rds")) {
-# run with best parameters cost 10 and gamma 0.1 instead of tuning it again
-tuned_parameters <- tune(svm, Churn ~ ., data = trainData,
-                         ranges = list(cost = 10, 
-                                       gamma = 0.1),
-                         probability = TRUE)
-  saveRDS(tuned_parameters$best.model, "output/svm_tuned_model.rds")
-} else {
-# Best model with probabilities
-#best_model <- tuned_parameters$best.model
-  best_model <- readRDS("output/svm_tuned_model.rds")
-}
-
-# Check the best parameters chosen during tuning
-best_parameters <- tuned_parameters$best.parameters
-print(best_parameters)
-
-
-# Predict churn probabilities using the best model
-probabilities <- predict(best_model, testData, probability = TRUE)
-
-# Extract probabilities
-probabilities_df <- attr(probabilities, "probabilities")
-head(probabilities_df)  # View predicted probabilities for both classes
-```
-
-
-
 ## Customer Segmentation Based on Churn Risk
 
 Customers were segmented into three risk groups based on churn probabilities:
@@ -1705,9 +1672,9 @@ Customers were segmented into three risk groups based on churn probabilities:
 
 : Churn Probability and Risk Group Segmentation
 
-```{r SVM-CustomerSegmentation, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+```{r SVM-CustomerSegmentation, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
 # Add churn probabilities and predicted class to the test data
-testData$Churn_Prob <- probabilities_df[, "Yes"]
+testData$Churn_Prob <- probabilities[, "Yes"]
 testData$Risk_Group <- cut(testData$Churn_Prob, 
                            breaks = c(0, 0.3, 0.7, 1),
                            labels = c("Low Risk", "Medium Risk", "High Risk"))
@@ -1715,8 +1682,6 @@ testData$Risk_Group <- cut(testData$Churn_Prob,
 # View segmented data
 head(testData[, c("Churn_Prob", "Risk_Group")])
 ```
-
-
 
 **Insights**:
 
@@ -1871,3 +1836,165 @@ This project underscores the importance of data-driven decision-making in tackli
 Moving forward, the integration of customer satisfaction metrics, competitive market data, and real-time prediction capabilities can enhance the accuracy and relevance of churn predictions. This continuous improvement process will ensure TeleConnect remains competitive while fostering long-term customer loyalty and profitability.
 
 The success of this project highlights the transformative potential of combining human expertise, teamwork, and generative AI to drive innovation and achieve impactful business outcomes.
+
+\newpage
+\pagenumbering{gobble}
+
+# Appendix
+
+
+## References
+
+\newpage
+
+## Code Appendix
+
+### Dataset Overview
+
+```{r, echo=FALSE, results='show', cache=TRUE}
+library(readr)
+
+# Show the cleaned data as a table
+d.cleaned_telecom_customer_churn <- read_csv(
+  file.path(cleaned_data_dir, "telecom_customers_churn_cleaned.csv")
+)
+
+#classify variables types
+variable_types <- sapply(d.cleaned_telecom_customer_churn, function(x) {
+  if (is.numeric(x) && length(unique(x)) > 20) {
+    "Continuous"
+  } else if (length(unique(x)) == 2) {
+    "Binomial"
+  } else if (!is.numeric(x) || length(unique(x)) <= 20) {
+    "Categorical"
+  } else if (is.numeric(x) && all(x == as.integer(x))) {
+    "Count"
+  } else {
+    "Other"
+  }
+})
+
+print(variable_types)
+
+#creating count datatypes:
+# 1. Create service count variable (including all services)
+d.cleaned_telecom_customer_churn$services_count <- rowSums(
+  dplyr::select(d.cleaned_telecom_customer_churn,
+                PhoneService, MultipleLines, InternetService, OnlineSecurity,
+                OnlineBackup, DeviceProtection, TechSupport, StreamingTV,
+                StreamingMovies) != "No"
+)
+```
+
+### Linear Model
+
+**Summary:**
+
+```{r, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+# Load required libraries
+library(ggplot2)
+
+# Initial linear model with all relevant predictors
+lm_initial <- lm(log(MonthlyCharges) ~ 
+                   tenure + 
+                   InternetService + 
+                   Contract + 
+                   StreamingTV + 
+                   StreamingMovies +
+                   OnlineSecurity +
+                   OnlineBackup +
+                   DeviceProtection +
+                   TechSupport +
+                   PhoneService,
+                 data = d.cleaned_telecom_customer_churn)
+
+# Get model summary
+summary(lm_initial)
+```
+
+
+### Support Vector Machine
+
+**Churn Probability Prediction:**
+
+```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
+# Load necessary libraries
+library(e1071)
+library(caret)
+library(ggplot2)
+library(pROC)
+library(dplyr)
+
+# Load the cleaned dataset
+data <- read_csv(
+  file.path(cleaned_data_dir, "telecom_customers_churn_cleaned.csv")
+)
+
+# Check for missing values
+sum(is.na(data))
+
+# Convert target variable to a factor
+data$Churn <- as.factor(data$Churn)
+
+# Split the dataset into training and testing sets
+set.seed(123) # For reproducibility
+trainIndex <- createDataPartition(data$Churn, p = 0.8, list = FALSE)
+trainData <- data[trainIndex, ]
+testData <- data[-trainIndex, ]
+
+# ------------------ INITIAL SVM MODEL ------------------
+# Train the SVM model
+svm_model <- svm(Churn ~ ., data = trainData, kernel = "radial", cost = 1, 
+                 gamma = 0.1)
+
+# Make predictions on the test data
+predictions <- predict(svm_model, testData)
+
+# Evaluate the initial model
+cat("\nConfusion Matrix for Initial SVM Model:\n")
+confusionMatrix(predictions, testData$Churn)
+
+# Paths to save tuned model and parameters
+tuned_model_path <- "output/svm_tuned_model.rds"
+tuned_params_path <- "output/svm_tuned_parameters.rds"
+
+# ------------------ TUNED SVM MODEL ------------------
+# Tune the SVM model for optimal hyperparameters or load if already saved
+set.seed(123)
+if (!file.exists(tuned_model_path) || !file.exists(tuned_params_path)) {
+  cat("\nTuning SVM Model...\n")
+  tuned_parameters <- tune(svm, Churn ~ ., data = trainData,
+                           ranges = list(cost = c(0.1, 1, 10), 
+                                         gamma = c(0.01, 0.1, 1)),
+                           probability = TRUE)
+  best_model <- tuned_parameters$best.model
+  saveRDS(best_model, tuned_model_path)
+  saveRDS(tuned_parameters, tuned_params_path)
+} else {
+  cat("\nLoading Tuned SVM Model...\n")
+  best_model <- readRDS(tuned_model_path)
+  tuned_parameters <- readRDS(tuned_params_path)
+}
+
+# Make predictions with the best model
+best_predictions <- predict(best_model, testData, probability = TRUE)
+
+# Evaluate the best model
+cat("\nConfusion Matrix for Tuned SVM Model:\n")
+conf_matrix <- confusionMatrix(best_predictions, testData$Churn)
+print(conf_matrix)
+
+# Extract probabilities
+probabilities <- attr(predict(best_model, testData, probability = TRUE), "probabilities")
+
+# ------------------ BEST PARAMETERS ------------------
+# Check the best parameters chosen during tuning
+cat("\nBest Parameters Chosen During Tuning:\n")
+print(tuned_parameters$best.parameters)
+
+# ------------------ PROBABILITIES ------------------
+# Extract probabilities
+probabilities <- attr(best_predictions, "probabilities")
+cat("\nSample of Predicted Probabilities:\n")
+print(head(probabilities))  # Display a sample of probabilities
+```
