@@ -191,6 +191,8 @@ d.cleaned_telecom_customer_churn$services_count <- rowSums(
     -   Payment methods diversity indicates billing flexibility
     -   Relationship between charges and service subscriptions
 
+\newpage
+
 # Exploratory Data Analysis
 
 The exploratory data analysis focuses on understanding customer churn, service adoption, and tenure patterns. This section includes visual and statistical analysis to identify trends and factors influencing churn and customer behavior.
@@ -437,7 +439,7 @@ Include relevant predictors, such as:
 -   `StreamingTV` and `StreamingMovies`: Value-added services could contribute to customer retention.
 -   `SeniorCitizen`, `Partner`, `Dependents`: Demographics that might influence tenure.
 
-***Exploring the Data:**
+**Exploring the Data:**
 
 ```{r Poisson-DataExploration, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Load required libraries
@@ -457,9 +459,16 @@ ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure)) +
 
 ## Visualization.
 
-**Observed vs Predicted Tenure **
+**Observed vs Predicted Tenure**
 
-```{r Poisson-Visualizations, echo=FALSE, results='asis', cache=TRUE}
+```{r Poisson-Visualizations, echo=FALSE, results='show', cache=TRUE}
+# Fit Poisson regression
+glm_poisson <- glm(formula = tenure ~ InternetService + Contract + PaymentMethod + 
+                     StreamingTV + StreamingMovies + SeniorCitizen + Partner + 
+                     log(MonthlyCharges), 
+                   family = poisson(link = "log"),
+                   data = d.cleaned_telecom_customer_churn)
+
 # Predict tenure using the Poisson model
 d.cleaned_telecom_customer_churn$predicted_tenure <- predict(glm_poisson, type = "response")
 
@@ -472,7 +481,7 @@ ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = predicted_tenure)) 
        y = "Predicted Tenure (Poisson Model)")
 ```
 
- **Observed vs. Predicted Tenure (Poisson Model)**
+**Observed vs. Predicted Tenure (Poisson Model)**
 
   - The model underestimates shorter tenures and overestimates longer tenures, indicating   potential overdispersion or non-linearity.
   - Suggests that Poisson may not be the best fit, reinforcing the need for Quasi-Poisson     or Negative Binomial.
@@ -1139,6 +1148,7 @@ plot(nn_roc_resampled, col = "blue",
 auc_resampled <- auc(nn_roc_resampled)
 cat("Neural Network AUC (Resampled Data):", auc_resampled, "\n")
 ```
+
 **Key Insights:**
 
 - **Resampling with Weight Ratio:**
@@ -1161,54 +1171,6 @@ cat("Neural Network AUC (Resampled Data):", auc_resampled, "\n")
 - **Business Context:**
 	- High sensitivity aligns with TeleConnect's goal to minimize churn by identifying most at-risk customers for retention campaigns.
 	- Moderate specificity can be addressed by refining the model further or combining it with additional models like SVM or decision trees for ensemble methods.
-
-## Neural Network with Regularization and Adjusted Architecture
-
-```{r NN-RegularizationAndAdjustedArchitecture, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
-
-# Convert categorical variables to dummy variables
-train_data_numeric <- model.matrix(~ . - 1, data = trainData[, -which(names(trainData) == "Churn")])  # Remove intercept
-test_data_numeric <- model.matrix(~ . - 1, data = testData[, -which(names(testData) == "Churn")])    # Remove intercept
-
-# Ensure the labels are numeric binary
-train_labels <- as.numeric(trainData$Churn) - 1
-test_labels <- as.numeric(testData$Churn) - 1
-
-# Train the neural network with 3 hidden layers, regularization, and adjusted neurons
-nn_model_regularized <- mlp(
-  x = train_data_numeric, 
-  y = train_labels,
-  size = c(15, 10, 5),       # Three hidden layers: 15, 10, and 5 neurons
-  maxit = 300,
-  learnFuncParams = c(0.1, 0.001),  # Learning rate and weight decay (L2 regularization)
-  hiddenActFunc = "Act_Logistic"    # Logistic activation function
-)
-
-# Predict and evaluate
-nn_pred_regularized <- predict(nn_model_regularized, test_data_numeric)
-nn_pred_class_regularized <- as.factor(ifelse(nn_pred_regularized > 0.5, 1, 0))
-conf_matrix_regularized <- confusionMatrix(nn_pred_class_regularized, as.factor(test_labels))
-
-# Extract metrics
-confusion_matrix_regularized <- table(test_labels, nn_pred_class_regularized)
-TP <- confusion_matrix_regularized[2, 2]
-FN <- confusion_matrix_regularized[2, 1]
-FP <- confusion_matrix_regularized[1, 2]
-TN <- confusion_matrix_regularized[1, 1]
-
-accuracy <- (TP + TN) / sum(confusion_matrix_regularized)
-sensitivity <- TP / (TP + FN)  # Recall
-specificity <- TN / (TN + FP)
-precision <- TP / (TP + FP)
-
-# Print results
-cat("Metrics for Regularized Neural Network with Adjusted Architecture:\n")
-cat("Accuracy:", round(accuracy, 4), "\n")
-cat("Sensitivity (Recall):", round(sensitivity, 4), "\n")
-cat("Specificity:", round(specificity, 4), "\n")
-cat("Precision:", round(precision, 4), "\n")
-```
-
 
 ## Threshold Analysis and Visualization
 
@@ -1273,6 +1235,46 @@ ggplot(threshold_results, aes(x = Threshold)) +
 
 ```
 
+**Insights for Threshold Optimization:**
+
+- **Balancing Sensitivity and Specificity:**
+	- The graph highlights the trade-off between sensitivity and specificity.
+	- Lower thresholds (e.g., 0.40–0.45) are suitable when prioritizing sensitivity, ensuring most churners are identified at the cost of increased false positives.
+	- Higher thresholds (e.g., 0.60–0.70) favor specificity, reducing false positives but risking missed churners.
+
+- **Precision vs. Sensitivity:**
+	- Precision improves as sensitivity declines at higher thresholds. This implies that tighter thresholds result in fewer but more accurate churn predictions, which is critical when targeting high-value customers for retention.
+
+- **Optimal Threshold Range:**
+- **The best threshold depends on the business strategy:**
+	- If retaining as many churners as possible is a priority, use thresholds near 0.40 for higher sensitivity.
+	- If minimizing retention costs and false positives is the focus, use thresholds near 0.50–0.60, which offer a better balance between precision and specificity.
+
+- **Impact on Business Outcomes:**
+	- The choice of threshold can directly influence marketing costs and resource allocation for retention campaigns.
+	- For example:
+		- Low thresholds are suited for high-churn industries where missing churners is costly.
+		- High thresholds are better for industries with lower churn rates, where false positives could lead to unnecessary expenses.
+
+**Highlights from the Visualization:**
+
+- **Accuracy:**
+	- Accuracy remains relatively stable across thresholds, peaking around the default threshold of 0.50 and declining slightly at the extremes.
+	- This stability suggests that accuracy alone may not be the best metric to optimize for when selecting thresholds, as it masks the trade-off between sensitivity and specificity.
+
+- **Sensitivity:**
+	- Sensitivity is highest at lower thresholds (e.g., 0.10–0.30) and declines sharply as the threshold increases.
+	- This behavior aligns with the model's tendency to classify more customers as "churners" at lower thresholds, which increases the true positive rate but also increases false positives.
+
+- **Specificity:**
+	- Specificity exhibits the opposite trend, starting very low at lower thresholds but steadily increasing as the threshold rises.
+	- This suggests that higher thresholds are better for identifying loyal (non-churning) customers accurately, which is critical for reducing unnecessary retention interventions.
+
+- **Precision:**
+	- Precision improves significantly as the threshold increases, peaking at higher thresholds (e.g., 0.75–0.90).
+	- This indicates that as the threshold increases, a larger proportion of customers predicted as churners are actually churners, minimizing wasted resources on false positives.
+	
+
 ## Evaluation Metrics
 
 1. **Confusion Matrix Results**:
@@ -1317,8 +1319,6 @@ ggplot(threshold_results, aes(x = Threshold)) +
 
 
 The Neural Network model demonstrates robust capabilities in identifying churn-prone customers, aligning with TeleConnect’s goal to enhance customer retention. By fine-tuning thresholds and leveraging predictive insights, TeleConnect can effectively reduce churn rates, increase customer lifetime value, and optimize retention budgets. This model serves as a cornerstone for a data-driven retention strategy that balances sensitivity, specificity, and business objectives.
-
-
 
 # Support Vector Machine (SVM)
 *Kenny Trinh took the lead on the Support Vector Machine model.*
