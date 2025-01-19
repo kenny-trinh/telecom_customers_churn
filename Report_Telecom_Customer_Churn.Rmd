@@ -195,86 +195,110 @@ d.cleaned_telecom_customer_churn <- d.cleaned_telecom_customer_churn %>%
 
 The exploratory data analysis focuses on understanding customer churn, service adoption, and tenure patterns. This section includes visual and statistical analysis to identify trends and factors influencing churn and customer behavior.
 
-```{r EDA-Visualizations, echo=FALSE, results='asis', warning=FALSE, cache=TRUE}
+Data Overview
+The dataset contains 7,043 customers with key features like:
+Demographics (Tenure, Services Count)
+Contract & Payment details (Contract Type, MonthlyCharges)
+Churn Status (Target Variable)
+
+**Log-Transformation of Charges (MonthlyCharges & TotalCharges)**
+
+```{r EDA-Visualizations, echo=FALSE, results='show', warning=FALSE, cache=TRUE}
 # Load required libraries if not already loaded
 library(ggplot2)
 library(gridExtra)
 library(dplyr)
+library(corrplot)
 
-# 1. Target Variable Distribution (Churn)
+# Apply log transformation
+d.cleaned_telecom_customer_churn <- d.cleaned_telecom_customer_churn %>%
+  mutate(log_MonthlyCharges = log(MonthlyCharges + 1),
+         log_TotalCharges = log(TotalCharges + 1))
+
+# Histograms before and after log transformation
+p1 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = MonthlyCharges)) + 
+  geom_histogram(bins = 30, fill = "steelblue", alpha = 0.7) +
+  ggtitle("Before Log Transformation (MonthlyCharges)")
+
+p2 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = log_MonthlyCharges)) + 
+  geom_histogram(bins = 30, fill = "darkred", alpha = 0.7) +
+  ggtitle("After Log Transformation (MonthlyCharges)")
+
+p3 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = TotalCharges)) + 
+  geom_histogram(bins = 30, fill = "blue", alpha = 0.7) +
+  ggtitle("Before Log Transformation (TotalCharges)")
+
+p4 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = log_TotalCharges)) + 
+  geom_histogram(bins = 30, fill = "red", alpha = 0.7) +
+  ggtitle("After Log Transformation (TotalCharges)")
+
+grid.arrange(p1, p2, p3, p4, ncol = 2)
+```
+- TotalCharges and MonthlyCharges were right-skewed, requiring log-transformation.
+- After transformation, the distributions became more normal, improving model assumptions
+
+**Key Findings from EDA**
+
+```{r EDA-Visualizations, echo=FALSE, results='show', warning=FALSE, cache=TRUE}
+
+# Churn distribution
 churn_dist <- ggplot(d.cleaned_telecom_customer_churn, aes(x = Churn, fill = Churn)) +
   geom_bar() +
   geom_text(stat='count', aes(label=..count..), position=position_dodge(width=0.9), vjust=-0.5) +
   theme_minimal() +
-  labs(title = "Distribution of Customer Churn",
-       x = "Churn Status",
-       y = "Number of Customers")
+  labs(title = "Distribution of Customer Churn", x = "Churn Status", y = "Number of Customers")
 
-# 2. Count Variables Analysis (for Poisson GLM)
-# Services Count by Churn
-services_churn <- ggplot(d.cleaned_telecom_customer_churn, 
-                         aes(x = factor(services_count), fill = Churn)) +
-  geom_bar(position = "dodge") +
-  theme_minimal() +
-  labs(title = "Number of Services by Churn Status",
-       x = "Number of Services",
-       y = "Count")
-
-# Tenure by Churn
-tenure_churn <- ggplot(d.cleaned_telecom_customer_churn, 
-                       aes(x = Churn, y = tenure)) +
-  geom_boxplot(fill = "lightblue") +
-  theme_minimal() +
-  labs(title = "Customer Tenure by Churn Status",
-       x = "Churn Status",
-       y = "Tenure (months)")
-
-# 3. Key categorical variable (Contract Type)
-contract_churn <- ggplot(d.cleaned_telecom_customer_churn, 
-                         aes(x = Contract, fill = Churn)) +
+# Churn Rate by Contract Type:
+contract_churn <- ggplot(d.cleaned_telecom_customer_churn, aes(x = Contract, fill = Churn)) +
   geom_bar(position = "fill") +
   theme_minimal() +
-  labs(title = "Churn Rate by Contract Type",
-       x = "Contract Type",
-       y = "Proportion")
+  labs(title = "Churn Rate by Contract Type", x = "Contract Type", y = "Proportion")
 
-# 4. Monthly Charges vs Tenure with Churn
-charges_tenure <- ggplot(d.cleaned_telecom_customer_churn, 
-                         aes(x = tenure, y = MonthlyCharges, color = Churn)) +
-  geom_point(alpha = 0.5) +
+
+
+#Monthly Charages vs Tenure
+charges_tenure <- ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = MonthlyCharges, color = Churn)) +
+  geom_smooth(method = "loess", se = TRUE) + 
   theme_minimal() +
-  labs(title = "Monthly Charges vs Tenure by Churn Status",
-       x = "Tenure (months)",
-       y = "Monthly Charges ($)")
+  labs(title = "Monthly Charges vs Tenure (Smoothed)", x = "Tenure (months)", y = "Monthly Charges ($)")
 
-# Arrange all plots in a grid
-grid.arrange(churn_dist, services_churn,
-             tenure_churn, contract_churn,
-             charges_tenure, 
-             layout_matrix = rbind(c(1,2),
-                                   c(3,4),
-                                   c(5,5)))
 
-# Basic summary statistics for count variables
-summary_stats <- d.cleaned_telecom_customer_churn %>%
-  group_by(Churn) %>%
-  summarise(
-    avg_services = mean(services_count),
-    avg_tenure = mean(tenure),
-    avg_monthly = mean(MonthlyCharges)
-  )
+# Arrange all plots in a grid: Bar plots on the left, Line plot on the right
+grid.arrange(churn_dist, contract_churn, charges_tenure, 
+             layout_matrix = rbind(c(1,2), 
+                                   c(3,3)))
+
 ```
 
--   **Churn Distribution**:
-    -   Majority of customers (1,869) did not churn, indicating an imbalanced dataset.
--   **Number of Services**:
-    -   Customers with 2-3 or 8-9 services are more likely to churn, while 6-7 services correlate with better retention.
--   **Tenure**:
-    -   Churners have shorter tenures, with churn risk highest in the early months.
--   **Contract Type**:
-    -   Month-to-month contracts show the highest churn, while two-year contracts significantly reduce churn.
--   **Monthly Charges**:
-    -   Higher monthly charges are linked to churn, particularly in the early months of tenure
+1. Churn Distribution
+  - 26.5% of customers churned (1,869 out of 7,043).
+  - Class imbalance exists (need to consider resampling for modeling).
+2. Contract Type & Churn Relationship
+  - Month-to-month contracts have the highest churn rate (42.7%).
+  - Two-year contracts have the lowest churn rate (11.2%).
+3.Relationship Between Monthly Charges & Tenure
+  - Customers with lower tenure & high MonthlyCharges churn more frequently.
+  - The relationship is non-linear, justifying using Generalized Additive Models(GAMs).
+  
+**Correlation Analysis with numeric variables **
+
+```{r EDA-Visualizations, echo=FALSE, results='show', warning=FALSE, cache=TRUE}
+# Selecting numeric variables
+numeric_vars <- d.cleaned_telecom_customer_churn %>%
+  select(tenure, log_MonthlyCharges, log_TotalCharges, services_count) %>%
+  na.omit()
+
+# Correlation matrix
+corr_matrix <- cor(numeric_vars)
+
+# Heatmap
+corrplot(corr_matrix, method = "color", type = "upper")
+
+```
+**Correlation Analysis**
+  - TotalCharges and Tenure have a very high correlation (r ≈ 0.98), meaning one could be removed in some           models   to avoid multicollinearity.
+
+Based on these findings, we proceed to the methodology section, where we implement various models to predict churn and evaluate their effectiveness.
 
 # Methodology and Model Selection
 
@@ -290,6 +314,7 @@ In our analysis, we employed the following machine learning approaches:
 4.  **Generalized Additive Model (GAM)**: To capture non-linear relationships in customer behavior
 5.  **Neural Network (NN)**: To recognize complex patterns in customer churn
 6.  **Support Vector Machine (SVM)**: To segment customers based on churn risk and grouping them.
+
 
 # Linear Model (LM)
 *Sabin Pun took the lead on the linear model.*
