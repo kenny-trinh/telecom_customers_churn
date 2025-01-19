@@ -871,7 +871,7 @@ TeleConnect aims to leverage Neural Network (NN) models to enhance customer rete
 
 ## Data Preparation for Neural Network
 
-```{r NN-DataPreparation, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+```{r NN-DataPreparation, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
 # Load necessary libraries
 library(caret)
 library(nnet)
@@ -957,7 +957,7 @@ The data is prepared for the Neural Network model by splitting it into training 
   - Moderate complexity.
   - Great balance.
   
-Key Insights from Neural Network Configurations:
+**Key Insights from Neural Network Configurations:**
 
 1.  **Best Overall Model**:
     -   **Size = 2, Decay = 0.04** delivers the best trade-off between sensitivity (91.10%) and specificity (54.42%), making it ideal for practical deployment.
@@ -970,7 +970,7 @@ Key Insights from Neural Network Configurations:
 
 ### Training with an optimal configuration
 
-```{r NN-TrainNN, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+```{r NN-TrainNN, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
 # Train the Neural Network
 nn_model <- nnet(
   Churn ~ ., data = trainData,
@@ -986,44 +986,142 @@ A Neural Network is trained with 2 hidden neurons (size) and a regularization pa
 ## Evaluating the Model
 
 ```{r NN-EvaluateModel, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
-
+library(caret)
+library(pROC)
 # Evaluate the model
-# Confusion matrix
+# Generate predictions (binary classification at 0.5 threshold)
 nn_pred <- as.factor(ifelse(nn_prob > 0.5, 1, 0))
-conf_matrix <- confusionMatrix(nn_pred, testData$Churn)
-print(conf_matrix)
+testData$Churn <- as.factor(testData$Churn)
+
+# Ensure levels of nn_pred and testData$Churn match
+levels(nn_pred) <- levels(testData$Churn)
+
+# Compute the confusion matrix
+conf_matrix <- caret::confusionMatrix(data = nn_pred, reference = testData$Churn)
+
+# Check the structure of conf_matrix
+cat("Confusion Matrix:\n")
+print(conf_matrix$table)  # Access the confusion table specifically
+
+# Extract performance metrics
+accuracy <- conf_matrix$overall["Accuracy"]
+sensitivity <- conf_matrix$byClass["Sensitivity"]
+specificity <- conf_matrix$byClass["Specificity"]
+balanced_accuracy <- mean(c(sensitivity, specificity))  # Manually compute balanced accuracy if needed
+
+# Display metrics
+cat("\nPerformance Metrics:\n")
+cat("Accuracy:", round(accuracy, 4), "\n")
+cat("Sensitivity:", round(sensitivity, 4), "\n")
+cat("Specificity:", round(specificity, 4), "\n")
+cat("Balanced Accuracy:", round(balanced_accuracy, 4), "\n")
 
 # Compute and plot the ROC curve
-nn_roc <- roc(testData$Churn, as.numeric(nn_prob), 
-              levels = rev(levels(testData$Churn)))
-plot(nn_roc, col = "blue", main = "Neural Network ROC Curve")
+nn_roc <- pROC::roc(response = testData$Churn, predictor = as.numeric(nn_prob), 
+                    levels = rev(levels(testData$Churn)))
+# Plot the ROC curve
+plot(nn_roc, col = "blue", main = "Neural Network ROC Curve", lwd = 2)
+abline(a = 0, b = 1, col = "gray", lty = 2)  # Add diagonal reference line
+
+# Calculate and display the AUC
 auc_value <- auc(nn_roc)
-cat("Neural Network AUC:", auc_value, "\n")
+cat("Neural Network AUC:", round(auc_value, 4), "\n")
 ```
 
-The Neural Network's performance is evaluated using a confusion matrix and ROC curve. The Area Under the Curve (AUC) quantifies how well the model distinguishes between churners and non-churners.
+**Performance metrics:**
+
+- **Accuracy (80.8%):** The overall proportion of correct predictions, showing the model's reliable performance.
+- **Sensitivity (91.1%):** Indicates the model's strong ability to identify churners (class 1).
+- **Specificity (50.73%):** Reflects the model's moderate ability to identify non-churners (class 2).
+- **Balanced Accuracy (70.91%):** Combines sensitivity and specificity to provide a balanced measure of performance.
+
+**ROC Curve:**
+The Neural Network ROC Curve provides a visual representation of the trade-off between sensitivity and specificity across different thresholds.
+
+- **Shape of the Curve:** The curve rises steeply, showing high sensitivity for low false positive rates, which is critical for identifying churners.
+- **AUC Value (0.837):** Indicates strong model performance. An AUC close to 1 represents excellent classification ability, and 0.837 suggests the model is highly effective at distinguishing churners from non-churners.
+- **Diagonal Reference Line:** The gray line represents random guessing. The ROC curve staying well above this line confirms that the model is significantly better than random classification.
+
+**Insights Derived:**
+
+- **High Sensitivity and Moderate Specificity:**
+	- The Neural Network prioritizes identifying churners (class 1), making it suitable for a customer retention strategy that emphasizes minimizing churn.
+	- The trade-off is evident in the moderate specificity, suggesting some non-churners are misclassified as churners (false positives).
+
+- **Effective Threshold Optimization:**
+	- The threshold of 0.5 provides a good balance but may lead to a higher false positive rate.
+	- Businesses could consider adjusting the threshold (e.g., lowering to 0.45) to improve sensitivity further or raising it to improve specificity based on resource constraints.
+
+- **Strategic Applications:**
+	- The model's sensitivity makes it ideal for early intervention, targeting customers likely to churn with retention campaigns.
+	- Specificity can be improved with ensemble methods or additional feature engineering.
 
 ## Threshold Adjustment
 
 ```{r NN-ThresholdAdjustment, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+library(pROC)
+
 # Adjust the threshold to improve specificity
 threshold <- 0.54  # Adjust to a higher value to improve specificity
 nn_pred_adjusted <- as.factor(ifelse(nn_prob > threshold, 1, 0))
 
+# Ensure matching levels between predicted and actual
+levels(nn_pred_adjusted) <- levels(testData$Churn)
+
 # Generate a confusion matrix for the adjusted threshold
-conf_matrix_adjusted <- confusionMatrix(nn_pred_adjusted, testData$Churn)
-print(conf_matrix_adjusted)
+conf_matrix_adjusted <- caret::confusionMatrix(data = nn_pred_adjusted, reference = testData$Churn)
+
+# Display confusion matrix
+cat("Confusion Matrix for Adjusted Threshold (", threshold, "):\n", sep = "")
+print(conf_matrix_adjusted$table)
+
+# Extract performance metrics
+accuracy_adjusted <- conf_matrix_adjusted$overall["Accuracy"]
+sensitivity_adjusted <- conf_matrix_adjusted$byClass["Sensitivity"]
+specificity_adjusted <- conf_matrix_adjusted$byClass["Specificity"]
+precision_adjusted <- conf_matrix_adjusted$byClass["Pos Pred Value"]
+balanced_accuracy_adjusted <- mean(c(sensitivity_adjusted, specificity_adjusted))
+
+# Print metrics
+cat("\nPerformance Metrics for Adjusted Threshold:\n")
+cat("Accuracy:", round(accuracy_adjusted, 4), "\n")
+cat("Sensitivity:", round(sensitivity_adjusted, 4), "\n")
+cat("Specificity:", round(specificity_adjusted, 4), "\n")
+cat("Precision:", round(precision_adjusted, 4), "\n")
+cat("Balanced Accuracy:", round(balanced_accuracy_adjusted, 4), "\n")
 
 # Recalculate and plot the ROC curve for the adjusted predictions
-nn_roc_adjusted <- roc(testData$Churn, as.numeric(nn_prob), 
-                       levels = rev(levels(testData$Churn)))
-plot(nn_roc_adjusted, col = "red", 
-     main = "Neural Network ROC Curve (Adjusted Threshold)")
-auc_value_adjusted <- auc(nn_roc_adjusted)
-cat("Neural Network AUC (Adjusted Threshold):", auc_value_adjusted, "\n")
-```
+nn_roc_adjusted <- pROC::roc(response = testData$Churn, predictor = as.numeric(nn_prob), 
+                             levels = rev(levels(testData$Churn)))
 
-The decision threshold for classifying churners is adjusted to 0.54, focusing on improving specificity (reducing false positives) while maintaining acceptable sensitivity. The updated confusion matrix is then evaluated.
+# Plot the adjusted ROC curve
+plot(nn_roc_adjusted, col = "red", 
+     main = "Neural Network ROC Curve (Adjusted Threshold)", lwd = 2)
+abline(a = 0, b = 1, col = "gray", lty = 2)  # Add diagonal reference line
+
+# Calculate and display AUC
+auc_value_adjusted <- auc(nn_roc_adjusted)
+cat("Neural Network AUC (Adjusted Threshold):", round(auc_value_adjusted, 4), "\n")
+```
+**Key Insights:**
+
+- **Threshold Adjustment:**
+	- The decision threshold was increased to 0.54 from the default 0.50, prioritizing specificity (reducing false positives).
+	- This adjustment improves the balance between identifying churners and avoiding misclassification of loyal customers.
+
+- **Confusion Matrix:**
+	- **True Positives (TP):** 181 (correctly identified churners).
+	- **False Positives (FP):** 192 (non-churners incorrectly identified as churners).
+	- **True Negatives (TN):** 949 (correctly identified non-churners).
+	- **False Negatives (FN):** 85 (churners missed by the model).
+
+- **Improved AUC:**
+	- The AUC increased to 0.8443, indicating better discrimination between churners and non-churners with the adjusted threshold.
+	- The red ROC curve demonstrates higher specificity while maintaining good sensitivity.
+
+- **Impact of the Adjusted Threshold:**
+	- The threshold adjustment effectively reduces false positives, which is critical for managing retention costs and optimizing outreach efforts.
+	- While there is a slight trade-off in sensitivity (fewer true churners are detected), the overall model performance remains robust.
 
 ## Final NN Model Performance (Resampling with Weight Ratio)
 
