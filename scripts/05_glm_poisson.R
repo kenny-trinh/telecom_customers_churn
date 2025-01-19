@@ -1,6 +1,7 @@
 # Load required libraries
 library(ggplot2)
 
+# ---- EDA ----
 ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure)) +
   geom_histogram(binwidth = 1, fill = "lightblue", color = "black") +
   labs(title = "Distribution of Tenure",
@@ -11,46 +12,33 @@ ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure)) +
 # ---- Apply poisson model ----
 
 # Fit Poisson regression
-glm_tenure <- glm(tenure ~ InternetService + Contract + PaymentMethod +
-                    StreamingTV + StreamingMovies + SeniorCitizen +
-                    Partner + MonthlyCharges + TotalCharges,
-                  family = poisson(link = "log"), data = d.cleaned_telecom_customer_churn)
+glm_poisson <- glm(formula = tenure ~ InternetService + Contract + PaymentMethod + 
+                     StreamingTV + StreamingMovies + SeniorCitizen + Partner + 
+                     log(MonthlyCharges), 
+                   family = poisson(link = "log"),
+                   data = d.cleaned_telecom_customer_churn)
 
-summary(glm_tenure)
+summary(glm_poisson)
 
-# ---- Create Boxplots ----
+# Predict tenure using the Poisson model
+d.cleaned_telecom_customer_churn$predicted_tenure <- predict(glm_poisson, type = "response")
 
-# Boxplot for Contract
-ggplot(d.cleaned_telecom_customer_churn, aes(x = Contract, y = tenure)) +
-  geom_boxplot(fill = "lightblue", outlier.color = "red") +
-  labs(title = "Tenure vs Contract Type", x = "Contract Type", y = "Tenure (Months)") +
-  theme_minimal()
-
-# Boxplot for Internet Service
-ggplot(d.cleaned_telecom_customer_churn, aes(x = InternetService, y = tenure)) +
-  geom_boxplot(fill = "lightgreen", outlier.color = "red") +
-  labs(title = "Tenure vs Internet Service", x = "Internet Service Type", y = "Tenure (Months)") +
-  theme_minimal()
+ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = predicted_tenure)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess", color = "red") +
+  theme_minimal() +
+  labs(title = "Observed vs. Predicted Tenure",
+       x = "Observed Tenure (Months)",
+       y = "Predicted Tenure (Poisson Model)")
 
 # ---- Apply Quasi-Poisson model ----
 
-glm_quasi <- glm(tenure ~ InternetService * Contract + PaymentMethod * Contract +
-                   StreamingTV + StreamingMovies + SeniorCitizen + Partner +
-                   MonthlyCharges + TotalCharges,
-                 family = quasipoisson(link = "log"),
+# Fit Quasi-Poisson Model
+glm_quasi <- glm(tenure ~ InternetService + Contract + PaymentMethod + 
+                   StreamingTV + StreamingMovies + SeniorCitizen + Partner + 
+                   log(MonthlyCharges), 
+                 family = quasipoisson(link = "log"), 
                  data = d.cleaned_telecom_customer_churn)
+
+# Display model summary
 summary(glm_quasi)
-
-# Fit Poisson regression with interactions
-glm_tenure_interaction <- glm(
-  tenure ~ InternetService * Contract +
-    PaymentMethod * Contract +
-    StreamingTV + StreamingMovies +
-    SeniorCitizen + Partner +
-    MonthlyCharges + TotalCharges,
-  family = poisson(link = "log"),
-  data = d.cleaned_telecom_customer_churn
-)
-
-# Summary of the updated model
-summary(glm_tenure_interaction)
