@@ -87,18 +87,16 @@ testData$Churn <- as.factor(testData$Churn)
 conf_matrix <- caret::confusionMatrix(data = best_predictions,
                                       reference = testData$Churn)
 
-# Extract Accuracy
+# Extract and print key metrics
 accuracy <- conf_matrix$overall["Accuracy"]
-cat("Accuracy:", accuracy, "\n")
-
-# Extract Precision, Recall, and F1-Score
 precision <- conf_matrix$byClass["Pos Pred Value"]
 recall <- conf_matrix$byClass["Sensitivity"]
 f1_score <- 2 * (precision * recall) / (precision + recall)
 
-cat("Precision:", precision, "\n")
-cat("Recall:", recall, "\n")
-cat("F1-Score:", f1_score, "\n")
+cat("Accuracy:", round(accuracy, 4), "\n")
+cat("Precision:", round(precision, 4), "\n")
+cat("Recall:", round(recall, 4), "\n")
+cat("F1-Score:", round(f1_score, 4), "\n")
 
 # ---Generate the ROC curve and calculate AUC---
 # Get decision values (raw scores) for predictions
@@ -107,15 +105,15 @@ svm_decision_values <- predict(best_model, testData, decision.values = TRUE)
 # Extract decision values for the ROC curve
 decision_values <- as.numeric(attr(svm_decision_values, "decision.values"))
 
-# Recalculate the ROC curve
+# Recalculate and plot the ROC curve with the tuned SVM model
 roc_curve <- roc(response = testData$Churn,
                  predictor = decision_values,
                  levels = rev(levels(testData$Churn)))
 
-# Plot the corrected ROC curve
-plot(roc_curve, col = "blue", main = "Corrected ROC Curve for Tuned SVM Model", lwd = 2)
+# Plot the ROC curve for the tuned SVM model
+plot(roc_curve, col = "blue", main = "ROC Curve for Tuned SVM Model", lwd = 2)
 auc_value <- auc(roc_curve)
-cat("Corrected AUC:", auc_value, "\n")
+cat("AUC:", round(auc_value, 4), "\n")
 
 
 # ---Segmenting Customers Based on Risk Levels---
