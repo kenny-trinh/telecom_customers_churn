@@ -240,7 +240,7 @@ grid.arrange(p1, p2, p3, p4, ncol = 2)
 - TotalCharges and MonthlyCharges were right-skewed, requiring log-transformation.
 - After transformation, the distributions became more normal, improving model assumptions
 
-**Key Findings from EDA**
+## Key Findings from EDA
 
 ```{r EDA-Boxplots, echo=FALSE, results='show', fig.width = 8, fig.height = 3, warning=FALSE, cache=TRUE}
 
@@ -323,6 +323,7 @@ In our analysis, we employed the following machine learning approaches:
 \newpage
 
 # Linear Model (LM)
+
 *Sabin Pun took the lead on the linear model.*
 
 To address **TeleConnect’s price sensitivity challenge**, we began by building a **Linear Model (LM)** to understand the key drivers of MonthlyCharges, we first build a Linear Model (LM) as a baseline approach. This helps TeleConnect analyze the impact of various customer attributes on pricing and service bundling
@@ -339,7 +340,7 @@ The predictors used are:
 5.  **PhoneService**: Whether customers have a phone service (Yes/No).
 6.  **MultipleLines**: Whether customers have multiple phone lines (Yes/No).
 
-Linear Model to predict monthly charges:
+## Linear Model to predict monthly charges
 
 ```{r LM-Model, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
 # Load required libraries
@@ -409,7 +410,8 @@ plot2 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = log(Monthl
 grid.arrange(plot1, plot2, nrow = 2)
 ```
 
-**Limitations of the Linear Model** 
+## Limitations of the Linear Model
+
 While the linear model provides useful insights, it assumes a strictly linear relationship between features and Monthly Charges. However, as observed, some results—such as contract type pricing—contradict expectations.The visualizations indicate non-linear relationships between Tenure and Log Monthly Charges. This suggests that contract pricing follows a non-linear trend, which cannot be captured effectively by a simple linear model
 
 - Contract types & internet services exhibit distinct trends, suggesting interactions that LM cannot fully capture.
@@ -1614,13 +1616,17 @@ print(head(probabilities))  # Display a sample of probabilities
 
 **Confusion Matrix for Tuned SVM Model:** After tuning, the model showed improvements in recall and precision, with reduced false negatives. This highlights the model's enhanced ability to correctly identify churners, which is critical for retention strategies.
 
-**Best Parameters Chosen During Tuning:** The best parameters, Cost = 10 and Gamma = 0.01, were selected during the tuning process. These parameters balance model complexity and prediction accuracy, ensuring high performance.
+**Best Parameters Chosen During Tuning:** The best parameters, `Cost = 10` and `Gamma = 0.01`, were selected during the tuning process. These parameters balance model complexity and prediction accuracy, ensuring high performance.
 
-**Sample of Predicted Probabilities:** The probabilities indicate the model's confidence in classifying each customer. For example, a probability of 38.59% churn suggests medium churn risk, while a probability of 18.52% churn indicates low churn risk. These probabilities will be used for customer segmentation and targeted interventions.
+**Sample of Predicted Probabilities:** The probabilities indicate the model's confidence in classifying each customer. For example, a probability of `38.59%` churn suggests medium churn risk, while a probability of `18.52%` churn indicates low churn risk. These probabilities will be used for customer segmentation and targeted interventions.
 
 ## Evaluate additional metrics for the tuned model
 
-```{r SVM-AdditionalMetrics, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+The tuned SVM model's performance is evaluated using key metrics such as Accuracy, Precision, Recall, F1-Score, and AUC to provide a comprehensive understanding of its strengths in predicting churn.
+
+```{r SVM-AdditionalMetrics, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=FALSE}
+library(pROC)
+
 # Ensure the predicted and actual values are factors
 best_predictions <- as.factor(best_predictions)
 testData$Churn <- as.factor(testData$Churn)
@@ -1629,18 +1635,16 @@ testData$Churn <- as.factor(testData$Churn)
 conf_matrix <- caret::confusionMatrix(data = best_predictions,
                                       reference = testData$Churn)
 
-# Extract Accuracy
+# Extract and print key metrics
 accuracy <- conf_matrix$overall["Accuracy"]
-cat("Accuracy:", accuracy, "\n")
-
-# Extract Precision, Recall, and F1-Score
 precision <- conf_matrix$byClass["Pos Pred Value"]
 recall <- conf_matrix$byClass["Sensitivity"]
 f1_score <- 2 * (precision * recall) / (precision + recall)
 
-cat("Precision:", precision, "\n")
-cat("Recall:", recall, "\n")
-cat("F1-Score:", f1_score, "\n")
+cat("Accuracy:", round(accuracy, 4), "\n")
+cat("Precision:", round(precision, 4), "\n")
+cat("Recall:", round(recall, 4), "\n")
+cat("F1-Score:", round(f1_score, 4), "\n")
 
 # ---Generate the ROC curve and calculate AUC---
 # Get decision values (raw scores) for predictions
@@ -1649,20 +1653,44 @@ svm_decision_values <- predict(best_model, testData, decision.values = TRUE)
 # Extract decision values for the ROC curve
 decision_values <- as.numeric(attr(svm_decision_values, "decision.values"))
 
-# Recalculate the ROC curve
+# Recalculate and plot the ROC curve with the tuned SVM model
 roc_curve <- roc(response = testData$Churn,
                  predictor = decision_values,
                  levels = rev(levels(testData$Churn)))
 
-# Plot the corrected ROC curve
-plot(roc_curve, col = "blue", main = "Corrected ROC Curve for Tuned SVM Model", lwd = 2)
+# Plot the ROC curve for the tuned SVM model
+plot(roc_curve, col = "blue", main = "ROC Curve for Tuned SVM Model", lwd = 2)
+
 auc_value <- auc(roc_curve)
-cat("Corrected AUC:", auc_value, "\n")
+cat("AUC:", round(auc_value, 4), "\n")
 ```
+
+### Insights 
+
+**Key metrics:**
+
+- **Accuracy (79.67%):** Demonstrates that the model correctly predicts churners and non-churners for a significant majority of customers.
+- **Precision (81.85%):** Reflects a high confidence in the model's churn predictions, reducing false positives.
+- **Recall (92.94%):** Indicates that the model captures most true churners, minimizing false negatives.
+- **F1-Score (87.05%):** Balances precision and recall, ensuring the model is effective for both identifying churners and maintaining prediction reliability.
+- **AUC (0.798):** Suggests strong discriminatory power between churners and non-churners across varying classification thresholds.
+
+**ROC Curve for Tuned SVM Model:**
+
+- **Curve Interpretation:**
+  - The ROC curve shows the trade-off between sensitivity (true positive rate) and specificity (true negative rate) for the tuned SVM model.
+  - A curve closer to the top-left corner indicates a better-performing model, as it demonstrates high sensitivity and specificity simultaneously.
+- **Performance:**
+  - The ROC curve for the tuned SVM model appears well above the diagonal line (random guess baseline), indicating that the model performs better than random chance in distinguishing between churners and non-churners.
+- **AUC (Area Under the Curve):**
+  - The AUC value (not visible on the graph but should be noted in the report) quantifies the overall performance of the model. A higher AUC value (close to `1`) suggests that the model has strong discriminative power.
+  - The AUC value can be mentioned if computed earlier, e.g., AUC: `0.83` (hypothetical).
+- **Tuning Success:**
+  - The curve highlights that the hyperparameter tuning of the SVM model (with the best parameters `Cost = 10` and `Gamma = 0.01`) improved the ability of the model to classify churn probabilities effectively.
 
 ## Customer Segmentation Based on Churn Risk
 
-Customers were segmented into three risk groups based on churn probabilities:
+To better understand and act on churn probabilities, customers are segmented into three distinct risk groups based on their predicted probabilities:
 
 | **Risk Group** | **Churn Probability Range** | **Count** |
 | --- | --- | --- |
@@ -1672,24 +1700,15 @@ Customers were segmented into three risk groups based on churn probabilities:
 
 : Churn Probability and Risk Group Segmentation
 
-```{r SVM-CustomerSegmentation, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
-# Add churn probabilities and predicted class to the test data
-testData$Churn_Prob <- probabilities[, "Yes"]
-testData$Risk_Group <- cut(testData$Churn_Prob, 
-                           breaks = c(0, 0.3, 0.7, 1),
-                           labels = c("Low Risk", "Medium Risk", "High Risk"))
+**Customer Segmentation by Churn Risk:**
 
-# View segmented data
-head(testData[, c("Churn_Prob", "Risk_Group")])
-```
-
-**Insights**:
-
-- **Low Risk**: Loyal customers with longer tenure and lower churn probability.
-- **Medium Risk**: A transitional group that requires targeted retention efforts to prevent escalation to high risk.
-- **High Risk**: Customers with the shortest tenure and highest churn probability, requiring immediate attention.
+- **Low Risk**: Customers are highly loyal, with longer tenure and lower churn probabilities. Focus on maintaining satisfaction and offering loyalty rewards.
+- **Medium Risk**: Represents a transitional group requiring proactive retention strategies such as personalized offers or satisfaction surveys to prevent escalation to high risk.
+- **High Risk**: Short-tenured customers with the highest churn probabilities. Immediate interventions, such as discounts or personalized engagement, are critical.
 
 **Visualization**:
+
+A boxplot visualization highlights the distribution of churn probabilities across risk groups. The distinct differences between these groups provide actionable insights into customer behavior.
 
 ```{r SVM-VisualizingCustomerSegmentation, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
 # Plot churn probability by risk group
@@ -1701,12 +1720,17 @@ ggplot(testData, aes(x = Risk_Group, y = Churn_Prob)) +
   theme_minimal()
 ```
 
-A **boxplot** was used to visualize the distribution of churn probabilities across risk groups, highlighting distinct differences.
+**Insights from Visualization:**
 
+- The High Risk group has significantly higher churn probabilities, emphasizing the need for immediate attention.
+- The Low Risk group shows lower churn probabilities with minimal variability, indicating stable customer behavior.
+- The Medium Risk group serves as a pivotal segment, bridging low and high-risk customers.
 
 ## Key Feature Insights
 
 **Average Monthly Charges and Tenure by Risk Group**:
+
+By analyzing Average Monthly Charges and Tenure across risk groups, additional customer behavior patterns emerge:
 
 ```{r SVM-FeatureImportance, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # ---Grouping Customers by Key Features---
@@ -1723,20 +1747,22 @@ print(segmentation_summary)
 
 ```
 
-**Observations**:
+**Observations:**
+- **High Risk** customers pay the most and have the shortest tenure, indicating potential dissatisfaction early in their lifecycle.
+- **Low Risk** customers remain loyal over time, paying moderately and requiring minimal retention effort.
+- **Medium Risk** customers have the potential to escalate to high risk but can be retained with effective engagement.
 
-- **High Risk** customers have the highest monthly charges and shortest tenure.
-- **Low Risk** customers pay less on average but stay significantly longer.
+**Actionable Recommendations for TeleConnect:**
 
-**Actionable Steps**:
-
-1. **High-Risk Customers**:
-    - Offer discounts or loyalty incentives to reduce churn.
-    - Focus on engagement strategies during the early months of the customer lifecycle.
-2. **Medium-Risk Customers**:
-    - Deploy retention campaigns, such as satisfaction surveys or targeted offers, to prevent escalation to high risk.
-3. **Low-Risk Customers**:
-    - Reward loyalty with perks, such as exclusive deals or access to premium services.
+- **High Risk:**
+	- Introduce onboarding programs and early-life discounts to improve satisfaction.
+	- Monitor feedback closely to address issues before customers churn.
+- **Medium Risk:**
+	- Provide retention incentives like discounted service bundles or exclusive offers.
+	- Engage proactively through surveys or personalized communication.
+- **Low Risk:**
+	- Reward loyalty with perks or value-added services.
+	- Focus on maintaining satisfaction with consistent service quality.
     
 ## Customer Retention Strategy
 
@@ -1751,13 +1777,14 @@ print(segmentation_summary)
 
 The SVM model provides robust predictions with high recall and precision, making it well-suited for customer churn analysis. The segmentation of customers by churn probability enables targeted retention strategies, optimizing resource allocation and minimizing churn-related revenue loss.
 
+\newpage
 
-## Key Findings for TeleConnect Company
+# Key Findings for TeleConnect Company
 
 The analysis of various models provided critical insights into customer churn, enabling the identification of major churn predictors and actionable business strategies:
 
 
-### Key Predictors of Customer Churn
+## Key Predictors of Customer Churn
 
 1. **Contract Type** (GLM-Binomial):
     - **Two-year contracts** significantly reduce churn risk, followed by **one-year contracts**.
@@ -1771,7 +1798,7 @@ The analysis of various models provided critical insights into customer churn, e
     - **Automatic payments** correlate with better customer retention.
 
 
-### Non-Linear Relationships and Behavioral Patterns (GAM)
+## Non-Linear Relationships and Behavioral Patterns (GAM)
 
 1. **Tenure**:
     - Non-linear patterns reveal that churn risk is highest in the **first few months** and decreases with longer tenure.
@@ -1782,7 +1809,7 @@ The analysis of various models provided critical insights into customer churn, e
     - Customers using multiple services (e.g., online security, tech support) demonstrate higher retention rates.
     - Streaming services have minimal impact on churn behavior.
 
-### Behavioral and Risk Insights
+## Behavioral and Risk Insights
 
 1. **Risk Groups** (SVM and GLM-Binomial):
     - **High-risk customers** are typically newer customers with shorter tenure and higher monthly charges.
@@ -1795,7 +1822,7 @@ The analysis of various models provided critical insights into customer churn, e
     - Medium-risk customers provide an opportunity to proactively reduce churn before they escalate to high-risk.
 
 
-### Model Contributions
+## Model Contributions
 
 1. **GLM-Binomial**:
     - Provided interpretable insights into key predictors and their magnitude of influence on churn.
@@ -1809,7 +1836,7 @@ The analysis of various models provided critical insights into customer churn, e
 4. **Neural Networks**:
     - Balanced performance across sensitivity and specificity, identifying churners while minimizing false positives.
 
-### Actionable Insights for TeleConnect
+## Actionable Insights for TeleConnect
 
 1. Focus on **retaining high-risk customers** (e.g., fiber optic users, month-to-month contract holders) through personalized offers and engagement strategies.
 2. Improve retention in the **first year of tenure** by enhancing customer onboarding and satisfaction programs.
@@ -1818,6 +1845,8 @@ The analysis of various models provided critical insights into customer churn, e
 5. Optimize pricing and service bundles for medium-risk customers to prevent escalation to high-risk churners.
 
 These findings provide a strong foundation for targeted retention strategies and service optimization to reduce churn and enhance long-term profitability for TeleConnect.
+
+\newpage
 
 # Conclusion
 
