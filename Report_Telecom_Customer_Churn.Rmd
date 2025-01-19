@@ -4,7 +4,7 @@ author:
   - "Kenny Trinh"
   - "Sabin Pun"
   - "Sarp Koc"
-date: "2025-01-10"
+date: "2025-01-19"
 output:
   pdf_document:
     toc: true
@@ -106,6 +106,8 @@ By integrating machine learning models into its decision-making processes, TeleC
 - **Maximize revenue** through optimized pricing and smarter service bundling.
 - **Improve retention** by understanding what drives tenure and customer satisfaction.
 
+\newpage
+
 ## Dataset Overview
 
 The dataset encompasses comprehensive customer information including:
@@ -146,7 +148,6 @@ d.cleaned_telecom_customer_churn$services_count <- rowSums(
                 StreamingMovies) != "No"
 )
 ```
-
 **1. Continuous Variables:**
 
 -   `tenure` (Number of months the customer has been with the company)
@@ -191,6 +192,10 @@ d.cleaned_telecom_customer_churn$services_count <- rowSums(
     -   Payment methods diversity indicates billing flexibility
     -   Relationship between charges and service subscriptions
 
+\vspace{20mm}
+
+*Remark: Some results from the R-code chunks are hidden to improve readability. Those hidden results are shown in the Appendix - Code Appendix section.*
+
 \newpage
 
 # Exploratory Data Analysis
@@ -200,13 +205,16 @@ The exploratory data analysis focuses on understanding customer churn, service a
 **Data Overview:**
 
 The dataset contains 7,043 customers with key features like:
+
 - Demographics (Tenure, Services Count)
 - Contract & Payment details (Contract Type, MonthlyCharges)
 - Churn Status (Target Variable)
 
+\vspace{5mm}
+
 **Log-Transformation of Charges (MonthlyCharges & TotalCharges)**
 
-```{r EDA-Histograms-LogTransform, echo=FALSE, results='show', fig.width = 8, fig.height = 5, warning=FALSE, cache=TRUE}
+```{r EDA-Histograms-LogTransform, echo=FALSE, results='show', fig.width = 9, fig.height = 7, message=FALSE, warning=FALSE, cache=TRUE}
 # Load required libraries if not already loaded
 library(ggplot2)
 library(gridExtra)
@@ -241,9 +249,11 @@ grid.arrange(p1, p2, p3, p4, ncol = 2)
 - TotalCharges and MonthlyCharges were right-skewed, requiring log-transformation.
 - After transformation, the distributions became more normal, improving model assumptions
 
+\newpage
+
 ## Key Findings from EDA
 
-```{r EDA-Boxplots, echo=FALSE, results='show', fig.width = 8, fig.height = 3, warning=FALSE, cache=TRUE}
+```{r EDA-Boxplots, echo=FALSE, results='show', fig.width = 8, fig.height = 8, warning=FALSE, cache=TRUE}
 
 # Churn distribution
 churn_dist <- ggplot(d.cleaned_telecom_customer_churn, aes(x = Churn, fill = Churn)) +
@@ -284,9 +294,11 @@ grid.arrange(churn_dist, contract_churn, charges_tenure,
   - Customers with lower tenure & high MonthlyCharges churn more frequently.
   - The relationship is non-linear, justifying using Generalized Additive Models(GAMs).
   
+\newpage
+
 **Correlation Analysis with numeric variables **
 
-```{r EDA-CorrelationMatrix, echo=FALSE, results='show', fig.width = 5, fig.height = 5, warning=FALSE, cache=TRUE}
+```{r EDA-CorrelationMatrix, echo=FALSE, results='show', fig.width = 4.5, fig.height = 4.5, warning=FALSE, cache=TRUE}
 # Selecting numeric variables
 numeric_vars <- d.cleaned_telecom_customer_churn %>%
   select(tenure, log_MonthlyCharges, log_TotalCharges, services_count) %>%
@@ -306,7 +318,7 @@ corrplot(corr_matrix, method = "color", type = "upper")
 
 Based on these findings, we proceed to the methodology section, where we implement various models to predict churn and evaluate their effectiveness.
 
-# Methodology and Model Selection
+## Model Selection
 
 Our analysis employs six complementary machine learning approaches, each chosen for specific analytical capabilities:
 
@@ -329,17 +341,22 @@ In our analysis, we employed the following machine learning approaches:
 
 To address **TeleConnect’s price sensitivity challenge**, we began by building a **Linear Model (LM)** to understand the key drivers of MonthlyCharges, we first build a Linear Model (LM) as a baseline approach. This helps TeleConnect analyze the impact of various customer attributes on pricing and service bundling
 
+\vspace{5mm}
+
 The response variable for this linear model is:
 
 - **MonthlyCharges**: The amount customers pay per month(continuous)
 
 The predictors used are:
+
 1.  **Tenure**: Number of months the customer has been with the company.
 2.  **Contract:** Type of contract( Month to Month, one year, two year)
 3.  **InternetService**: Type of internet service (DSL, Fiber optic, No internet service).
 4.  **StreamingTV**: Whether customers have streaming TV services (Yes/No).
 5.  **PhoneService**: Whether customers have a phone service (Yes/No).
 6.  **MultipleLines**: Whether customers have multiple phone lines (Yes/No).
+
+\vspace{5mm}
 
 ## Linear Model to predict monthly charges
 
@@ -377,6 +394,8 @@ summary(lm_initial)
  
 : Coefficient interpretation for the linear model
 
+\vspace{5mm}
+
 **Interpretation:**
 
 - **Tenure**: Longer tenure slightly increases monthly charges.
@@ -384,6 +403,7 @@ summary(lm_initial)
 - **Contract Type**: Two-year contracts increase monthly charges by 9.2%.
 - **Additional Services (includes Streaming, Security, Backup, Tech Support, Device Protection and Phone Service)**: Customers with multiple services pay 6% to 55% more, with Phone Service having the most significant impact.
 
+\newpage
 
 ## Visualizing the main effects
 
@@ -411,9 +431,11 @@ plot2 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = log(Monthl
 grid.arrange(plot1, plot2, nrow = 2)
 ```
 
+\vspace{5mm}
+
 ## Limitations of the Linear Model
 
-While the linear model provides useful insights, it assumes a strictly linear relationship between features and Monthly Charges. However, as observed, some results—such as contract type pricing—contradict expectations.The visualizations indicate non-linear relationships between Tenure and Log Monthly Charges. This suggests that contract pricing follows a non-linear trend, which cannot be captured effectively by a simple linear model
+While the linear model provides useful insights, it assumes a strictly linear relationship between features and Monthly Charges. However, as observed, some results—such as contract type pricing—contradict expectations.The visualizations indicate non-linear relationships between Tenure and Log Monthly Charges. This suggests that contract pricing follows a non-linear trend, which cannot be captured effectively by a simple linear model.
 
 - Contract types & internet services exhibit distinct trends, suggesting interactions that LM cannot fully capture.
 - LOESS smoothers in the plots show curved trends, implying that a Generalized Additive Model (GAM) or non-linear methods (SVM, Neural Networks) might be better suited.
@@ -429,7 +451,9 @@ To address **TeleConnect’s challenge of understanding customer retention**, we
 
 To analyze customer tenure, we use a GLM-Poisson regression model, which is well-suited for count data like tenure (measured in months).
 
-**Tenure** (count of months as a customer).
+The response variable for this model is:
+
+- **Tenure** (count of months as a customer).
 
 Include relevant predictors, such as:
 
@@ -438,6 +462,8 @@ Include relevant predictors, such as:
 -   `PaymentMethod`: Certain payment methods might affect tenure (e.g., automatic payments may reduce churn).
 -   `StreamingTV` and `StreamingMovies`: Value-added services could contribute to customer retention.
 -   `SeniorCitizen`, `Partner`, `Dependents`: Demographics that might influence tenure.
+
+\vspace{5mm}
 
 **Exploring the Data:**
 
@@ -453,15 +479,15 @@ ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure)) +
   theme_minimal()
 ```
 
--   There’s a high frequency of customers with **tenure close to 0 months**.
--   There’s another peak at **tenure near 72 months**, likely customers who have been with the company long-term.
+- There’s a high frequency of customers with **tenure close to 0 months**.
+- There’s another peak at **tenure near 72 months**, likely customers who have been with the company long-term.
 
 
-## Visualization.
+## Visualization
 
 **Observed vs Predicted Tenure**
 
-```{r Poisson-Visualizations, echo=FALSE, results='show', cache=TRUE}
+```{r Poisson-Visualizations, echo=FALSE, fig.width = 9, fig.height = 5, results='show', cache=TRUE}
 # Fit Poisson regression
 glm_poisson <- glm(formula = tenure ~ InternetService + Contract + PaymentMethod + 
                      StreamingTV + StreamingMovies + SeniorCitizen + Partner + 
@@ -486,11 +512,11 @@ ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = predicted_tenure)) 
   - The model underestimates shorter tenures and overestimates longer tenures, indicating   potential overdispersion or non-linearity.
   - Suggests that Poisson may not be the best fit, reinforcing the need for Quasi-Poisson     or Negative Binomial.
 
-## Overdispersion Check**
+## Overdispersion Check
 
 To ensure that the **Poisson model** is appropriate for modeling **customer tenure**, we checked for **overdispersion**. Overdispersion occurs when the variance of the response variable is significantly greater than its mean, which can lead to underestimated standard errors and misleading statistical inferences.
 
-### **Dispersion Parameter Calculation**
+**Dispersion Parameter Calculation**
 The dispersion parameter is calculated as:
 
 \[
@@ -503,11 +529,12 @@ For our **Poisson model**, we obtained:
 - **Degrees of Freedom**: `7,030`
 - **Dispersion Parameter**: `10.55`
 
-**Interpretation**
+**Interpretation:**
+
 - Since the dispersion parameter **(10.55)** is **significantly greater than 1**, this indicates **strong overdispersion**.
 - This suggests that the **Poisson model underestimates variability**, making it **not the best fit** for the data.
 
-### **Solution: Quasi-Poisson Model**
+**Solution: Quasi-Poisson Model**
 To address overdispersion, we proceed with a **Quasi-Poisson model**, which adjusts the standard errors to provide more reliable estimates.
 
 
@@ -515,7 +542,7 @@ To address overdispersion, we proceed with a **Quasi-Poisson model**, which adju
 
 Since the **Poisson model showed significant overdispersion**, we use a **Quasi-Poisson model** to correct for underestimated standard errors. The **Quasi-Poisson model** allows for variability greater than the mean, providing more reliable coefficient estimates.
 
-```{r Quasi-Poisson-Model, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+```{r Quasi-Poisson-Model, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
 # Fit Quasi-Poisson Model
 glm_quasi <- glm(tenure ~ InternetService + Contract + PaymentMethod + 
                    StreamingTV + StreamingMovies + SeniorCitizen + Partner + 
@@ -531,13 +558,13 @@ summary(glm_quasi)
 
 ## Quasi-Poisson Model Interpretation
 
-| **Predictor** | **Effect on Log(Tenure)** | **Interpretation** |
-| --- | --- | --- |
+| **Predictor** | **Effect on Log(Tenure)** |
+| --- | --- |
 | **Internet Service (Fiber Optic)** | `-0.124` (**↓11.6% tenure**) |
 | **Internet Service (No Service)** | `+0.509` (**↑66.4% tenure**) |
 | **Contract (One Year)** | `+0.731` (**↑107.7% tenure**) | 
 | **Contract (Two Year)** | `+0.970` (**↑164.4% tenure**) | 
-| **Payment Method (Credit Card - Automatic)** | `
+| **Payment Method (Credit Card - Automatic)** |
 | **Payment Method (Electronic Check)** | `-0.157` (**↓14.5% tenure**) | 
 | **Payment Method (Mailed Check)** | `-0.362` (**↓30.4% tenure**) | 
 | **Senior Citizen** | `+0.118` (**↑12.5% tenure**) |
@@ -546,29 +573,25 @@ summary(glm_quasi)
 
 : **Coefficient for the Quasi-Poisson model**.
 
----
-**Interpretation**
--  Customers with **Fiber optic internet** have **11.6% shorter tenure** compared to DSL users. 
-- Customers with **no internet service** have **66.4% longer tenure** than DSL users.
+
+**Interpretation:**
+
+- Customers with **Fiber optic internet** have **11.6% shorter tenure** compared to DSL users. - Customers with **no internet service** have **66.4% longer tenure** than DSL users.
 - Customers with a **one-year contract stay 107.7% longer** than those on **month-to-month contracts**
 - Customers with a **two-year contract stay 164.4% longer**, highlighting **strong retention** for long-term contracts.
-- Customers paying via **electronic check** have **14.5% shorter tenure**, suggesting potential churn risks. |
+- Customers paying via **electronic check** have **14.5% shorter tenure**, suggesting potential churn risks. 
 - Customers using **mailed checks** have **30.4% shorter tenure**, indicating **high churn risk**. 
--  Senior citizens tend to stay **12.5% longer** than younger customers.
--  Customers **with partners** stay **26.6% longer**, indicating stability in tenure. 
-- **Higher monthly charges** are associated with **longer tenure**, possibly due to bundled services. |
+- Senior citizens tend to stay **12.5% longer** than younger customers.
+- Customers **with partners** stay **26.6% longer**, indicating stability in tenure. 
+- **Higher monthly charges** are associated with **longer tenure**, possibly due to bundled services.
 
 
+**Key Takeaways:**
 
-
-### **Key Takeaways**
 - **Contract type remains the strongest predictor** of customer retention.
 - **Higher-paying customers** tend to stay longer.
 - **Payment method influences tenure**: Customers using **mailed checks churn much faster**.
 - **Internet service impacts tenure in unexpected ways**: Customers without internet **stay longer**.
-
-
-
 
 
 \newpage
@@ -584,7 +607,7 @@ The GLM-Binomial (Logistic Regression) and Generalized Additive Model (GAM) are 
 
 First let's prepare the data for the visualization and modelling.
 
-```{r GLM-Binomial-GAM-DataPreparation, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+```{r GLM-Binomial-GAM-DataPreparation, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
 
 # Load required libraries
 library(ggplot2)
@@ -637,7 +660,7 @@ Higher tenure and total charges are associated with lower churn, reinforcing loy
 
 ## Plot: Tenure by Contract Type
 
-```{r GLM-Binomial-GAM-Visualizations2, echo=FALSE, results='asis', cache=TRUE}
+```{r GLM-Binomial-GAM-Visualizations2, echo=FALSE, fig.width = 9, fig.height = 5, results='asis', cache=TRUE}
 
 ggplot(data, aes(x = Contract, y = tenure, fill = Contract)) +
   geom_boxplot(alpha = 0.7) +
@@ -654,7 +677,7 @@ Longer contract durations (e.g., two years) correlate with higher customer reten
 
 ## Plot: Churn by Payment Method
 
-```{r GLM-Binomial-GAM-Visualizations3, echo=FALSE, results='asis', cache=TRUE}
+```{r GLM-Binomial-GAM-Visualizations3, echo=FALSE, fig.width = 9, fig.height = 5, results='asis', cache=TRUE}
 
 ggplot(data, aes(x = PaymentMethod, fill = Churn)) +
   geom_bar(position = "fill", alpha = 0.8) +
@@ -672,7 +695,7 @@ Customers using electronic checks exhibit the highest churn proportion, suggesti
 
 ## Plot: Churn Proportion by Internet Service
 
-```{r GLM-Binomial-GAM-Visualizations4, echo=FALSE, results='asis', cache=TRUE}
+```{r GLM-Binomial-GAM-Visualizations4, echo=FALSE, fig.width = 9, fig.height = 5, results='asis', cache=TRUE}
 # Load necessary libraries
 if (!require(ggplot2)) install.packages("ggplot2")
 if (!require(dplyr)) install.packages("dplyr")
@@ -707,7 +730,7 @@ Let's create models of GLM and GAM to see if they catch these relations and how 
 
 ## GLM
 
-```{r GLM, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+```{r GLM, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
 
 # Set 'No service' as the reference level for InternetService
 data$InternetService <- relevel(data$InternetService, ref = "No")
@@ -722,28 +745,33 @@ glm_model_interaction <- glm(Churn ~ SeniorCitizen + Contract + PaymentMethod +
                              family = binomial, data = data)
 # Check the summary
 summary(glm_model_interaction)
-
 ```
 
-So let's interpret the results:
+| **Feature**              | **Impact on Churn**                                   |
+|---------------------------|-------------------------------------------------------|
+| **Internet Service**      | Fiber optic ↑, DSL ↓                                  |
+| **Payment Method**        | Electronic check ↑                                    |
+| **Tenure**                | Longer tenure ↓                                       |
+| **Total Charges**         | Higher charges ↓                                      |
+| **Contract Type**         | One-year ↓, Two-year ↓                                |
+| **Senior Citizen**        | Senior citizens ↑                                     |
+| **Online Security**       | Online security ↑                                     |
+| **Tech Support**          | Tech support ↑                                        |
 
-Fiber optic users are more likely to churn, while DSL users are less likely to churn compared to no internet service customers.
+: Interpretation of GLM Coefficients
 
-Electronic check users are at higher risk of churn.
 
-Customers with higher tenure and total charges are less likely to churn.
+**Interpretation:**
 
-Longer contracts significantly reduce churn risk.
-
-Senior citizens are more likely to churn
-
-Electronic check users are more likely to churn.
-
-Online security increases churn
-
-Tech support significantly increases churn risk.
-
-Longer contracts significantly reduce churn.
+- Fiber optic users are more likely to churn, while DSL users are less likely to churn compared to no internet service customers.
+- Electronic check users are at higher risk of churn.
+- Customers with higher tenure and total charges are less likely to churn.
+- Longer contracts significantly reduce churn risk.
+- Senior citizens are more likely to churn
+- Electronic check users are more likely to churn.
+- Online security increases churn
+- Tech support significantly increases churn risk.
+- Longer contracts significantly reduce churn.
 
 ## Did the model overfit?
 
@@ -790,7 +818,7 @@ If there were significant overfitting, we would expect a much larger difference 
 
 ## GAM with non-linear patterns
 
-```{r GAM-WithNonLinearPatterns, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+```{r GAM-WithNonLinearPatterns, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
 library(mgcv)
 data$TotalCharges_centered <- data$TotalCharges- mean(data$TotalCharges)
 cat("Reference level for 'Contract':", levels(data$Contract)[1], "\n")
@@ -803,13 +831,52 @@ gam_smoothing_spline <- gam(Churn ~ SeniorCitizen + Contract + PaymentMethod +
 summary(gam_smoothing_spline)
 ```
 
+Here's the updated table highlighting insights based on the provided interpretation:
+
+| **Feature**                  | **Impact on Churn**                               |
+|-------------------------------|---------------------------------------------------|
+| **Tenure (s(tenure))**        | Non-linear ↓                                      |
+| **Total Charges (s(TotalCharges_centered))** | Non-linear ↓                       |
+| **Contract Type**             | One-year ↓, Two-year ↓                            |
+| **Senior Citizen**            | Senior citizens ↑                                 |
+| **Payment Method**            | Electronic check ↑                                |
+| **Internet Service**          | DSL ↓                                             |
+| **Online Security**           | Yes ↓                                             |
+| **Tech Support**              | Yes ↓                                             |
+| **Paperless Billing**         | Yes ↑                                             |
+| **Multiple Lines**            | Yes ↑                                             |
+
+: Interpretation of GAM Coefficients
+
+**Interpretation:**
+
+- **Tenure (s(tenure))**: The smooth term indicates a significant non-linear relationship; longer tenure generally reduces churn, though the effect is not linear.
+- **Total Charges (s(TotalCharges_centered))**: A significant non-linear relationship suggests that higher total charges reduce churn, though the effect is not constant across values.
+- **Contract Type**: Longer contracts significantly reduce churn risk, with two-year contracts having a stronger impact.
+- **Senior Citizen**: Senior citizens are more likely to churn.
+- **Payment Method**: Electronic check users are at higher risk of churn compared to other payment methods.
+- **Internet Service**: DSL users are less likely to churn compared to those with no internet service.
+- **Online Security**: Having online security reduces the likelihood of churn.
+- **Tech Support**: Access to tech support decreases churn risk.
+- **Paperless Billing**: Paperless billing increases churn risk.
+- **Multiple Lines**: Customers with multiple lines are more likely to churn.
+
+
+### Additional Highlights:
+- **Smooth Terms for Non-linear Effects**:
+  - **Tenure** and **TotalCharges_centered** have highly significant non-linear effects (p < 0.001), as indicated by their effective degrees of freedom (edf).
+  - The non-linear relationship is meaningful but not overly complex, with diminishing effects at higher values. 
+
+This table aligns with your GAM output and effectively incorporates the significance of smooth terms and non-linear effects. Let me know if further refinements are needed!
+
+
 edf shows that mooth terms for tenure and TotalCharges_centered are highly significant (p \< 0.001), indicating non-linear effects. Relationship is non-linear but not overly complex.
 
 ## ROC Comparison
 
 Let's compare these models.
 
-```{r ROC-Comparison, echo=FALSE, results='asis', cache=TRUE}
+```{r ROC-Comparison, echo=FALSE, fig.width = 6, fig.height = 3, results='show', cache=TRUE}
 
 library(pROC)
 
@@ -846,9 +913,11 @@ AIC(glm_model_interaction, gam_smoothing_spline)
 
 GAM has a slightly lower AIC (5809.896) than GLM (5828.536), further supporting that GAM provides a better fit to the data.
 
-## Conclusion
+## Conclusion for GLM and GAM
 
 Both models performed well in predicting churn, with GAM offering additional flexibility to capture non-linear relationships. While the non-linearity in some variables, like tenure, was not significant, GAM successfully identified a meaningful non-linear relationship with TotalCharges. The results highlight that customers are more likely to churn if they use fiber optic internet, pay via electronic checks, lack online security or tech support, or are senior citizens. Conversely, churn risk is lower for DSL users, those with higher tenure and total charges, and customers on longer-term contracts.
+
+\newpage
 
 # Neural Network (NN)
 *Kenny Trinh took the lead on the Neural Network model.*
@@ -931,16 +1000,16 @@ The data is prepared for the Neural Network model by splitting it into training 
 
 **Comparison:**
 
-- Configuration 1:
+- **Configuration 1:**
   - Best overall.
   - Has the best balance across all metrics.
-- Configuration 2:
+- **Configuration 2:**
   - High simplicity.
   - Simple with strong performance.
-- Configuration 3:
+- **Configuration 3:**
   - Best trade-off.
   - Balanced with slightly higher specificity.
-- Configuration 4:
+- **Configuration 4:**
   - Moderate complexity.
   - Great balance.
   
@@ -972,7 +1041,7 @@ A Neural Network is trained with 2 hidden neurons (size) and a regularization pa
 
 ## Evaluating the Model
 
-```{r NN-EvaluateModel, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+```{r NN-EvaluateModel, echo=FALSE, fig.width = 6, fig.height = 3, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 library(caret)
 library(pROC)
 
@@ -988,8 +1057,8 @@ levels(nn_pred) <- levels(testData$Churn)
 conf_matrix <- caret::confusionMatrix(data = nn_pred, reference = testData$Churn)
 
 # Check the structure of conf_matrix
-cat("Confusion Matrix:\n")
-print(conf_matrix$table)  # Access the confusion table specifically
+#cat("Confusion Matrix:\n")
+#print(conf_matrix$table)  # Access the confusion table specifically
 
 # Extract performance metrics
 accuracy <- conf_matrix$overall["Accuracy"]
@@ -998,11 +1067,11 @@ specificity <- conf_matrix$byClass["Specificity"]
 balanced_accuracy <- mean(c(sensitivity, specificity))  # Manually compute balanced accuracy if needed
 
 # Display metrics
-cat("\nPerformance Metrics:\n")
-cat("Accuracy:", round(accuracy, 4), "\n")
-cat("Sensitivity:", round(sensitivity, 4), "\n")
-cat("Specificity:", round(specificity, 4), "\n")
-cat("Balanced Accuracy:", round(balanced_accuracy, 4), "\n")
+# cat("\nPerformance Metrics:\n")
+# cat("Accuracy:", round(accuracy, 4), "\n")
+# cat("Sensitivity:", round(sensitivity, 4), "\n")
+# cat("Specificity:", round(specificity, 4), "\n")
+# cat("Balanced Accuracy:", round(balanced_accuracy, 4), "\n")
 
 # Compute and plot the ROC curve
 nn_roc <- pROC::roc(response = testData$Churn, predictor = as.numeric(nn_prob), 
@@ -1046,7 +1115,7 @@ The Neural Network ROC Curve provides a visual representation of the trade-off b
 
 ## Threshold Adjustment
 
-```{r NN-ThresholdAdjustment, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+```{r NN-ThresholdAdjustment, echo=FALSE, fig.width = 6, fig.height = 3, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 library(pROC)
 
 #--- Adjusting the Threshold ---
@@ -1093,11 +1162,16 @@ abline(a = 0, b = 1, col = "gray", lty = 2)  # Add diagonal reference line
 auc_value_adjusted <- auc(nn_roc_adjusted)
 cat("Neural Network AUC (Adjusted Threshold):", round(auc_value_adjusted, 4), "\n")
 ```
+
+\vspace{5mm}
+
 **Key Insights:**
 
 - **Threshold Adjustment:**
 	- The decision threshold was increased to 0.54 from the default 0.50, prioritizing specificity (reducing false positives).
 	- This adjustment improves the balance between identifying churners and avoiding misclassification of loyal customers.
+
+\newpage
 
 - **Confusion Matrix:**
 	- **True Positives (TP):** 181 (correctly identified churners).
@@ -1115,7 +1189,11 @@ cat("Neural Network AUC (Adjusted Threshold):", round(auc_value_adjusted, 4), "\
 
 ## Final NN Model Performance (Resampling with Weight Ratio)
 
-```{r NN-ResamplingWithWeightRatio, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+In this step, class imbalance is addressed by applying a weight ratio, giving higher importance to churners during training. This improves sensitivity while maintaining balanced accuracy. Using the optimal configuration (`size = 2`, `decay = 0.04`), the model achieves strong performance with an AUC of `0.8439`. This final adjustment aligns with TeleConnect’s goal to prioritize identifying churners effectively while balancing overall performance.
+
+\vspace{5mm}
+
+```{r NN-ResamplingWithWeightRatio, echo=FALSE, fig.width = 6, fig.height = 3, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 library(nnet)
 library(caret)
 library(pROC)
@@ -1149,6 +1227,8 @@ auc_resampled <- auc(nn_roc_resampled)
 cat("Neural Network AUC (Resampled Data):", auc_resampled, "\n")
 ```
 
+\vspace{5mm}
+
 **Key Insights:**
 
 - **Resampling with Weight Ratio:**
@@ -1172,108 +1252,7 @@ cat("Neural Network AUC (Resampled Data):", auc_resampled, "\n")
 	- High sensitivity aligns with TeleConnect's goal to minimize churn by identifying most at-risk customers for retention campaigns.
 	- Moderate specificity can be addressed by refining the model further or combining it with additional models like SVM or decision trees for ensemble methods.
 
-## Threshold Analysis and Visualization
-
-```{r NN-ThresholdAnalysis, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
-# Define thresholds to test
-thresholds <- seq(0.1, 0.9, by = 0.05)
-
-# Initialize a data frame to store results
-threshold_results <- data.frame(
-  Threshold = numeric(),
-  Accuracy = numeric(),
-  Sensitivity = numeric(),
-  Specificity = numeric(),
-  Precision = numeric()
-)
-
-# Loop through thresholds
-for (thresh in thresholds) {
-  # Apply the threshold to predictions
-  nn_pred_class_thresh <- as.factor(ifelse(nn_pred_dropout > thresh, 1, 0))
-  
-  # Confusion matrix and metrics
-  confusion_matrix_thresh <- table(test_labels, nn_pred_class_thresh)
-  TP_thresh <- confusion_matrix_thresh[2, 2]
-  FN_thresh <- confusion_matrix_thresh[2, 1]
-  FP_thresh <- confusion_matrix_thresh[1, 2]
-  TN_thresh <- confusion_matrix_thresh[1, 1]
-  
-  # Calculate metrics
-  accuracy_thresh <- (TP_thresh + TN_thresh) / sum(confusion_matrix_thresh)
-  sensitivity_thresh <- TP_thresh / (TP_thresh + FN_thresh)
-  specificity_thresh <- TN_thresh / (TN_thresh + FP_thresh)
-  precision_thresh <- TP_thresh / (TP_thresh + FP_thresh)
-  
-  # Add results to the data frame
-  threshold_results <- rbind(
-    threshold_results,
-    data.frame(
-      Threshold = thresh,
-      Accuracy = round(accuracy_thresh, 4),
-      Sensitivity = round(sensitivity_thresh, 4),
-      Specificity = round(specificity_thresh, 4),
-      Precision = round(precision_thresh, 4)
-    )
-  )
-}
-
-# Print the results
-print(threshold_results)
-
-# Visualize the results
-ggplot(threshold_results, aes(x = Threshold)) +
-  geom_line(aes(y = Accuracy, color = "Accuracy")) +
-  geom_line(aes(y = Sensitivity, color = "Sensitivity")) +
-  geom_line(aes(y = Specificity, color = "Specificity")) +
-  geom_line(aes(y = Precision, color = "Precision")) +
-  labs(title = "Performance Metrics Across Thresholds",
-       x = "Threshold",
-       y = "Metrics",
-       color = "Metrics") +
-  theme_minimal()
-
-```
-
-**Insights for Threshold Optimization:**
-
-- **Balancing Sensitivity and Specificity:**
-	- The graph highlights the trade-off between sensitivity and specificity.
-	- Lower thresholds (e.g., 0.40–0.45) are suitable when prioritizing sensitivity, ensuring most churners are identified at the cost of increased false positives.
-	- Higher thresholds (e.g., 0.60–0.70) favor specificity, reducing false positives but risking missed churners.
-
-- **Precision vs. Sensitivity:**
-	- Precision improves as sensitivity declines at higher thresholds. This implies that tighter thresholds result in fewer but more accurate churn predictions, which is critical when targeting high-value customers for retention.
-
-- **Optimal Threshold Range:**
-- **The best threshold depends on the business strategy:**
-	- If retaining as many churners as possible is a priority, use thresholds near 0.40 for higher sensitivity.
-	- If minimizing retention costs and false positives is the focus, use thresholds near 0.50–0.60, which offer a better balance between precision and specificity.
-
-- **Impact on Business Outcomes:**
-	- The choice of threshold can directly influence marketing costs and resource allocation for retention campaigns.
-	- For example:
-		- Low thresholds are suited for high-churn industries where missing churners is costly.
-		- High thresholds are better for industries with lower churn rates, where false positives could lead to unnecessary expenses.
-
-**Highlights from the Visualization:**
-
-- **Accuracy:**
-	- Accuracy remains relatively stable across thresholds, peaking around the default threshold of 0.50 and declining slightly at the extremes.
-	- This stability suggests that accuracy alone may not be the best metric to optimize for when selecting thresholds, as it masks the trade-off between sensitivity and specificity.
-
-- **Sensitivity:**
-	- Sensitivity is highest at lower thresholds (e.g., 0.10–0.30) and declines sharply as the threshold increases.
-	- This behavior aligns with the model's tendency to classify more customers as "churners" at lower thresholds, which increases the true positive rate but also increases false positives.
-
-- **Specificity:**
-	- Specificity exhibits the opposite trend, starting very low at lower thresholds but steadily increasing as the threshold rises.
-	- This suggests that higher thresholds are better for identifying loyal (non-churning) customers accurately, which is critical for reducing unnecessary retention interventions.
-
-- **Precision:**
-	- Precision improves significantly as the threshold increases, peaking at higher thresholds (e.g., 0.75–0.90).
-	- This indicates that as the threshold increases, a larger proportion of customers predicted as churners are actually churners, minimizing wasted resources on false positives.
-	
+\newpage
 
 ## Evaluation Metrics
 
@@ -1319,6 +1298,8 @@ ggplot(threshold_results, aes(x = Threshold)) +
 
 
 The Neural Network model demonstrates robust capabilities in identifying churn-prone customers, aligning with TeleConnect’s goal to enhance customer retention. By fine-tuning thresholds and leveraging predictive insights, TeleConnect can effectively reduce churn rates, increase customer lifetime value, and optimize retention budgets. This model serves as a cornerstone for a data-driven retention strategy that balances sensitivity, specificity, and business objectives.
+
+\newpage
 
 # Support Vector Machine (SVM)
 *Kenny Trinh took the lead on the Support Vector Machine model.*
@@ -1531,9 +1512,13 @@ To better understand and act on churn probabilities, customers are segmented int
 - **Medium Risk**: Represents a transitional group requiring proactive retention strategies such as personalized offers or satisfaction surveys to prevent escalation to high risk.
 - **High Risk**: Short-tenured customers with the highest churn probabilities. Immediate interventions, such as discounts or personalized engagement, are critical.
 
+\newpage
+
 **Visualization**:
 
 A boxplot visualization highlights the distribution of churn probabilities across risk groups. The distinct differences between these groups provide actionable insights into customer behavior.
+
+\vspace{5mm}
 
 ```{r SVM-VisualizingCustomerSegmentation, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
 # Plot churn probability by risk group
@@ -1545,11 +1530,15 @@ ggplot(testData, aes(x = Risk_Group, y = Churn_Prob)) +
   theme_minimal()
 ```
 
+\vspace{5mm}
+
 **Insights from Visualization:**
 
 - The High Risk group has significantly higher churn probabilities, emphasizing the need for immediate attention.
 - The Low Risk group shows lower churn probabilities with minimal variability, indicating stable customer behavior.
 - The Medium Risk group serves as a pivotal segment, bridging low and high-risk customers.
+
+\newpage
 
 ## Key Feature Insights
 
@@ -1646,6 +1635,7 @@ The analysis of various models provided critical insights into customer churn, e
     - High-risk customers represent a **critical segment** for retention efforts.
     - Medium-risk customers provide an opportunity to proactively reduce churn before they escalate to high-risk.
 
+\newpage
 
 ## Model Contributions
 
@@ -1696,10 +1686,12 @@ The success of this project highlights the transformative potential of combining
 
 # Appendix
 
-
 ## References
 
-\newpage
+https://www.kaggle.com/datasets/tarekmuhammed/telecom-customers/data
+
+## GitHub Repository
+https://github.com/kenny-trinh/telecom_customers_churn
 
 ## Code Appendix
 
@@ -1767,11 +1759,68 @@ summary(lm_initial)
 ```
 
 
+### GLM-Poisson
+
+**Quasi-Poisson Model Summary:**
+
+```{r, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+# Fit Quasi-Poisson Model
+glm_quasi <- glm(tenure ~ InternetService + Contract + PaymentMethod + 
+                   StreamingTV + StreamingMovies + SeniorCitizen + Partner + 
+                   log(MonthlyCharges), 
+                 family = quasipoisson(link = "log"), 
+                 data = d.cleaned_telecom_customer_churn)
+
+# Display model summary
+summary(glm_quasi)
+
+```
+
+### GLM-Binomial
+
+**GLM-Binomial Model Summary:**
+
+```{r, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+# Ensure 'InternetService' is a factor
+data$InternetService <- as.factor(data$InternetService)
+
+# Set 'No service' as the reference level for InternetService
+data$InternetService <- relevel(data$InternetService, ref = "No")
+# Confirm reference level
+cat("Reference level for 'Contract':", levels(data$Contract)[1], "\n")
+cat("Reference level for 'InternetService':", levels(data$InternetService)[1], "\n")
+# Fit the GLM with interaction terms
+glm_model_interaction <- glm(Churn ~ SeniorCitizen + Contract + PaymentMethod + 
+                             tenure + TotalCharges + 
+                             InternetService + OnlineSecurity + TechSupport + 
+                             PaperlessBilling + MultipleLines, 
+                             family = binomial, data = data)
+# Check the summary
+summary(glm_model_interaction)
+```
+
+### GAM with non-linear patterns
+
+**GAM Model Summary:**
+
+```{r, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+library(mgcv)
+data$TotalCharges_centered <- data$TotalCharges- mean(data$TotalCharges)
+cat("Reference level for 'Contract':", levels(data$Contract)[1], "\n")
+cat("Reference level for 'InternetService':", levels(data$InternetService)[1], "\n")
+gam_smoothing_spline <- gam(Churn ~ SeniorCitizen + Contract + PaymentMethod + 
+                             s(tenure) + s(TotalCharges_centered) + 
+                             InternetService + OnlineSecurity + TechSupport + 
+                             PaperlessBilling + MultipleLines, 
+                             family = binomial, data = data, select=TRUE)
+summary(gam_smoothing_spline)
+```
+
 ### Support Vector Machine
 
 **Churn Probability Prediction:**
 
-```{r, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
+```{r, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Load necessary libraries
 library(e1071)
 library(caret)
