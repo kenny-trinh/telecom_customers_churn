@@ -976,6 +976,8 @@ The data is prepared for the Neural Network model by splitting it into training 
 | **3** | 7 | 0.04 | 79.74% | 88.30% | 56.03% | 72.17% | 0.4603 |
 | **4** | 5 | 0.04 | 80.60% | 90.14% | 54.16% | 72.15% | 0.4707 |
 
+: Neural Network Configurations and Performance Metrics
+
 **Comparison:**
 
 - Configuration 1:
@@ -1587,6 +1589,7 @@ trainIndex <- createDataPartition(data$Churn, p = 0.8, list = FALSE)
 trainData <- data[trainIndex, ]
 testData <- data[-trainIndex, ]
 
+# ------------------ INITIAL SVM MODEL ------------------
 # Train the SVM model
 svm_model <- svm(Churn ~ ., data = trainData, kernel = "radial", cost = 1, 
                  gamma = 0.1)
@@ -1594,16 +1597,19 @@ svm_model <- svm(Churn ~ ., data = trainData, kernel = "radial", cost = 1,
 # Make predictions on the test data
 predictions <- predict(svm_model, testData)
 
-# Evaluate the model
+# Evaluate the initial model
+cat("\nConfusion Matrix for Initial SVM Model:\n")
 confusionMatrix(predictions, testData$Churn)
 
 # Paths to save tuned model and parameters
 tuned_model_path <- "output/svm_tuned_model.rds"
 tuned_params_path <- "output/svm_tuned_parameters.rds"
 
+# ------------------ TUNED SVM MODEL ------------------
 # Tune the SVM model for optimal hyperparameters or load if already saved
 set.seed(123)
 if (!file.exists(tuned_model_path) || !file.exists(tuned_params_path)) {
+  cat("\nTuning SVM Model...\n")
   tuned_parameters <- tune(svm, Churn ~ ., data = trainData,
                            ranges = list(cost = c(0.1, 1, 10), 
                                          gamma = c(0.01, 0.1, 1)),
@@ -1612,6 +1618,7 @@ if (!file.exists(tuned_model_path) || !file.exists(tuned_params_path)) {
   saveRDS(best_model, tuned_model_path)
   saveRDS(tuned_parameters, tuned_params_path)
 } else {
+  cat("\nLoading Tuned SVM Model...\n")
   best_model <- readRDS(tuned_model_path)
   tuned_parameters <- readRDS(tuned_params_path)
 }
@@ -1620,16 +1627,32 @@ if (!file.exists(tuned_model_path) || !file.exists(tuned_params_path)) {
 best_predictions <- predict(best_model, testData, probability = TRUE)
 
 # Evaluate the best model
+cat("\nConfusion Matrix for Tuned SVM Model:\n")
 conf_matrix <- confusionMatrix(best_predictions, testData$Churn)
 print(conf_matrix)
 
 # Extract probabilities
 probabilities <- attr(predict(best_model, testData, probability = TRUE), "probabilities")
 
+# ------------------ BEST PARAMETERS ------------------
 # Check the best parameters chosen during tuning
-best_parameters <- tuned_parameters$best.parameters
-print(best_parameters)
+cat("\nBest Parameters Chosen During Tuning:\n")
+print(tuned_parameters$best.parameters)
+
+# ------------------ PROBABILITIES ------------------
+# Extract probabilities
+probabilities <- attr(best_predictions, "probabilities")
+cat("\nSample of Predicted Probabilities:\n")
+print(head(probabilities))  # Display a sample of probabilities
 ```
+
+Confusion Matrix for Initial SVM Model: The initial model achieved good predictive performance, with a high count of true positives (churners correctly identified) and true negatives (non-churners correctly identified). However, some false negatives indicate a need for improved recall, which was addressed through hyperparameter tuning.
+
+Confusion Matrix for Tuned SVM Model: After tuning, the model showed improvements in recall and precision, with reduced false negatives. This highlights the model's enhanced ability to correctly identify churners, which is critical for retention strategies.
+
+Best Parameters Chosen During Tuning: The best parameters, Cost = 10 and Gamma = 0.01, were selected during the tuning process. These parameters balance model complexity and prediction accuracy, ensuring high performance.
+
+Sample of Predicted Probabilities: The probabilities indicate the model's confidence in classifying each customer. For example, a probability of 38.59% churn suggests medium churn risk, while a probability of 18.52% churn indicates low churn risk. These probabilities will be used for customer segmentation and targeted interventions.
 
 ## Evaluate additional metrics for the tuned model
 
@@ -1726,6 +1749,8 @@ Customers were segmented into three risk groups based on churn probabilities:
 | **Low Risk** | `< 0.3` | 1,034 |
 | **Medium Risk** | `0.3 - 0.7` | 228 |
 | **High Risk** | `> 0.7` | 145 |
+
+: Churn Probability and Risk Group Segmentation
 
 ```{r SVM-CustomerSegmentation, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Add churn probabilities and predicted class to the test data
