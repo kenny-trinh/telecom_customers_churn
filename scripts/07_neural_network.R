@@ -56,32 +56,87 @@ nn_model <- nnet(
 nn_prob <- predict(nn_model, testData, type = "raw")
 
 # Evaluate the model
-# Confusion matrix
+# Generate predictions (binary classification at 0.5 threshold)
 nn_pred <- as.factor(ifelse(nn_prob > 0.5, 1, 0))
-conf_matrix <- confusionMatrix(nn_pred, testData$Churn)
-print(conf_matrix)
+testData$Churn <- as.factor(testData$Churn)
+
+# Ensure levels of nn_pred and testData$Churn match
+levels(nn_pred) <- levels(testData$Churn)
+
+# Compute the confusion matrix
+conf_matrix <- caret::confusionMatrix(data = nn_pred, reference = testData$Churn)
+
+# Check the structure of conf_matrix
+cat("Confusion Matrix:\n")
+print(conf_matrix$table)  # Access the confusion table specifically
+
+# Extract performance metrics
+accuracy <- conf_matrix$overall["Accuracy"]
+sensitivity <- conf_matrix$byClass["Sensitivity"]
+specificity <- conf_matrix$byClass["Specificity"]
+balanced_accuracy <- mean(c(sensitivity, specificity))  # Manually compute balanced accuracy if needed
+
+# Display metrics
+cat("\nPerformance Metrics:\n")
+cat("Accuracy:", round(accuracy, 4), "\n")
+cat("Sensitivity:", round(sensitivity, 4), "\n")
+cat("Specificity:", round(specificity, 4), "\n")
+cat("Balanced Accuracy:", round(balanced_accuracy, 4), "\n")
 
 # Compute and plot the ROC curve
-nn_roc <- roc(testData$Churn, as.numeric(nn_prob), levels = rev(levels(testData$Churn)))
-plot(nn_roc, col = "blue", main = "Neural Network ROC Curve")
+nn_roc <- pROC::roc(response = testData$Churn, predictor = as.numeric(nn_prob), 
+                    levels = rev(levels(testData$Churn)))
+# Plot the ROC curve
+plot(nn_roc, col = "blue", main = "Neural Network ROC Curve", lwd = 2)
+abline(a = 0, b = 1, col = "gray", lty = 2)  # Add diagonal reference line
+
+# Calculate and display the AUC
 auc_value <- auc(nn_roc)
-cat("Neural Network AUC:", auc_value, "\n")
+cat("Neural Network AUC:", round(auc_value, 4), "\n")
 
-
+#--- Adjusting the Threshold ---
 
 # Adjust the threshold to improve specificity
 threshold <- 0.54  # Adjust to a higher value to improve specificity
 nn_pred_adjusted <- as.factor(ifelse(nn_prob > threshold, 1, 0))
 
+# Ensure matching levels between predicted and actual
+levels(nn_pred_adjusted) <- levels(testData$Churn)
+
 # Generate a confusion matrix for the adjusted threshold
-conf_matrix_adjusted <- confusionMatrix(nn_pred_adjusted, testData$Churn)
-print(conf_matrix_adjusted)
+conf_matrix_adjusted <- caret::confusionMatrix(data = nn_pred_adjusted, reference = testData$Churn)
+
+# Display confusion matrix
+cat("Confusion Matrix for Adjusted Threshold (", threshold, "):\n", sep = "")
+print(conf_matrix_adjusted$table)
+
+# Extract performance metrics
+accuracy_adjusted <- conf_matrix_adjusted$overall["Accuracy"]
+sensitivity_adjusted <- conf_matrix_adjusted$byClass["Sensitivity"]
+specificity_adjusted <- conf_matrix_adjusted$byClass["Specificity"]
+precision_adjusted <- conf_matrix_adjusted$byClass["Pos Pred Value"]
+balanced_accuracy_adjusted <- mean(c(sensitivity_adjusted, specificity_adjusted))
+
+# Print metrics
+cat("\nPerformance Metrics for Adjusted Threshold:\n")
+cat("Accuracy:", round(accuracy_adjusted, 4), "\n")
+cat("Sensitivity:", round(sensitivity_adjusted, 4), "\n")
+cat("Specificity:", round(specificity_adjusted, 4), "\n")
+cat("Precision:", round(precision_adjusted, 4), "\n")
+cat("Balanced Accuracy:", round(balanced_accuracy_adjusted, 4), "\n")
 
 # Recalculate and plot the ROC curve for the adjusted predictions
-nn_roc_adjusted <- roc(testData$Churn, as.numeric(nn_prob), levels = rev(levels(testData$Churn)))
-plot(nn_roc_adjusted, col = "red", main = "Neural Network ROC Curve (Adjusted Threshold)")
+nn_roc_adjusted <- pROC::roc(response = testData$Churn, predictor = as.numeric(nn_prob), 
+                             levels = rev(levels(testData$Churn)))
+
+# Plot the adjusted ROC curve
+plot(nn_roc_adjusted, col = "red", 
+     main = "Neural Network ROC Curve (Adjusted Threshold)", lwd = 2)
+abline(a = 0, b = 1, col = "gray", lty = 2)  # Add diagonal reference line
+
+# Calculate and display AUC
 auc_value_adjusted <- auc(nn_roc_adjusted)
-cat("Neural Network AUC (Adjusted Threshold):", auc_value_adjusted, "\n")
+cat("Neural Network AUC (Adjusted Threshold):", round(auc_value_adjusted, 4), "\n")
 
 
 # ---Cost-Sensitive Learning with Weighted Resampling with caret ---
