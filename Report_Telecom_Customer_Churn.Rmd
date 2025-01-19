@@ -423,9 +423,9 @@ Therefore, while LM helps interpret key relationships, we move forward with GLMs
 # GLM-Poisson Model
 *Sabin Pun took the lead on the GLM-Poisson model.*
 
-To address **TeleConnect’s challenge of understanding customer retention**, we utilized a **GLM-Poisson model** to analyze the factors influencing **tenure**—the number of months a customer remains with the company. By identifying the key drivers of tenure, this model helps TeleConnect develop targeted retention strategies.
+To address **TeleConnect’s challenge of understanding customer retention**, we utilized a **GLM-Poisson model** to analyze the factors influencing **tenure**—the number of months a customer remains subscribed—is a key indicator of retention. A longer tenure generally means higher customer lifetime value (CLV), while shorter tenures indicate early churn. 
 
-The response variable for Poisson regression must be **count data** (non-negative integers).
+To analyze customer tenure, we use a GLM-Poisson regression model, which is well-suited for count data like tenure (measured in months).
 
 **Tenure** (count of months as a customer).
 
@@ -437,7 +437,7 @@ Include relevant predictors, such as:
 -   `StreamingTV` and `StreamingMovies`: Value-added services could contribute to customer retention.
 -   `SeniorCitizen`, `Partner`, `Dependents`: Demographics that might influence tenure.
 
-Exploring the Data:
+***Exploring the Data:**
 
 ```{r Poisson-DataExploration, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 # Load required libraries
@@ -454,133 +454,113 @@ ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure)) +
 -   There’s a high frequency of customers with **tenure close to 0 months**.
 -   There’s another peak at **tenure near 72 months**, likely customers who have been with the company long-term.
 
-## Fit Poisson regression
-
-```{r Poisson-Model, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
-glm_tenure <- glm(tenure ~ InternetService + Contract + PaymentMethod +
-                    StreamingTV + StreamingMovies + SeniorCitizen +
-                    Partner + MonthlyCharges + TotalCharges,
-                  family = poisson(link = "log"), data = d.cleaned_telecom_customer_churn)
-
-summary(glm_tenure)
-```
-
-## Key Findings
-
-1.  **Contract Type**:
-    -   Customers with a **One-year contract** are expected to have a tenure **31.5% longer** than those with a month-to-month contract.
-    -   Customers with a **Two-year contract** have a **31.7% longer tenure**, making contract type a key predictor of retention.
-2.  **Internet Service**:
-    -   **Fiber optic users** have a slightly **higher tenure rate (+2.9%)** compared to DSL users.
-    -   Customers with **No internet service** show a significant **decrease in tenure (-4.7%)**, suggesting bundled services may improve retention.
-3.  **Payment Method**:
-    -   Customers paying via **Mailed check** have significantly **shorter tenures (-27%)** compared to electronic payment users.
-    -   **Credit card automatic payments** also show slightly shorter tenure (-20%), indicating that payment methods might influence retention.
-4.  **Streaming Services**:
-    -   **Streaming services (TV and Movies)** do not appear to significantly impact tenure, suggesting these features may not drive long-term customer retention.
-5.  **Senior Citizen**:
-    -   **Senior citizens** have a **7.4% longer tenure** than non-senior citizens, showing their loyalty to services.
-6.  **Monthly and Total Charges**:
-    -   **Monthly Charges** negatively impact tenure, with higher monthly charges leading to shorter tenures.
-    -   **Total Charges** positively influence tenure, as expected for long-term customers.
-
-## Evaluating the model:
-
-**1. Goodness of Fit:**
-
--   **Residual Deviance**:
-    -   The residual deviance is **43,105** on **7,029 degrees of freedom**.
-    -   This ratio (Degrees of Freedom/ Residual Deviance) is approximately **6.13**, which is significantly greater than 1. This indicates **overdispersion** (variance \> mean), suggesting the Poisson model may not be a perfect fit.
-
-**2. Significant Predictors:**
-
--   Predictors with extremely low p-values (p\<0.001p \< 0.001p\<0.001) include:
-    -   **Contract type** (One-year and Two-year contracts)
-    -   **Internet Service** (Fiber optic and No Internet Service)
-    -   **Payment Method** (Mailed check and Credit card)
-    -   **Senior Citizen**, **Partner**, **Monthly Charges**, and **Total Charges**
--   Non-significant predictors:
-    -   **StreamingTV** and **StreamingMovies** were not significant, indicating they may not have a strong impact on tenure.
-
-**3. Overdispersion Check:**
-
--   Overdispersion occurs when the variance of the response variable is greater than the mean.
-    -   **Mean of Tenure**: \~32 months
-    -   **Variance of Tenure**: Much larger than the mean, indicating overdispersion.
-    -   This can be addressed by using:
-        -   **Quasi-Poisson Regression**: Allows for overdispersion by adjusting the standard errors.
 
 ## Visualization.
 
-**Boxplot for Contract**
+**Observed vs Predicted Tenure **
 
 ```{r Poisson-Visualizations, echo=FALSE, results='asis', cache=TRUE}
-# Boxplot for Contract
-ggplot(d.cleaned_telecom_customer_churn, aes(x = Contract, y = tenure)) +
-  geom_boxplot(fill = "lightblue", outlier.color = "red") +
-  labs(title = "Tenure vs Contract Type", x = "Contract Type", y = "Tenure (Months)") +
-  theme_minimal()
+# Predict tenure using the Poisson model
+d.cleaned_telecom_customer_churn$predicted_tenure <- predict(glm_poisson, type = "response")
+
+ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = predicted_tenure)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess", color = "red") +
+  theme_minimal() +
+  labs(title = "Observed vs. Predicted Tenure",
+       x = "Observed Tenure (Months)",
+       y = "Predicted Tenure (Poisson Model)")
 ```
 
--   **Month-to-month contracts** show the shortest median tenure, with many outliers indicating customers leaving quickly.
--   **One-year** and **Two-year contracts** significantly increase tenure, with Two-year contracts having the longest median tenure.
+ **Observed vs. Predicted Tenure (Poisson Model)**
 
-Boxplot for Internet Service
+  - The model underestimates shorter tenures and overestimates longer tenures, indicating   potential overdispersion or non-linearity.
+  - Suggests that Poisson may not be the best fit, reinforcing the need for Quasi-Poisson     or Negative Binomial.
 
-```{r Poisson-Visualizations2, echo=FALSE, results='asis', cache=TRUE}
-# Boxplot for Internet Service
-ggplot(d.cleaned_telecom_customer_churn, aes(x = InternetService, y = tenure)) +
-  geom_boxplot(fill = "lightgreen", outlier.color = "red") +
-  labs(title = "Tenure vs Internet Service", x = "Internet Service Type", y = "Tenure (Months)") +
-  theme_minimal()
-```
+## Overdispersion Check**
 
--   Customers with **No internet service** tend to have shorter tenures.
--   **DSL** and **Fiber optic** services show similar median tenures, indicating these internet options retain customers for similar durations
+To ensure that the **Poisson model** is appropriate for modeling **customer tenure**, we checked for **overdispersion**. Overdispersion occurs when the variance of the response variable is significantly greater than its mean, which can lead to underestimated standard errors and misleading statistical inferences.
 
-Model with Quasi- Poisson Model with interaction Terms:
+### **Dispersion Parameter Calculation**
+The dispersion parameter is calculated as:
 
-```{r Poisson-QuasiModel, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
-glm_quasi <- glm(tenure ~ InternetService * Contract + PaymentMethod * Contract +
-                   StreamingTV + StreamingMovies + SeniorCitizen + Partner +
-                   MonthlyCharges + TotalCharges,
-                 family = quasipoisson(link = "log"),
+\[
+\text{Dispersion} = \frac{\text{Residual Deviance}}{\text{Degrees of Freedom}}
+\]
+
+For our **Poisson model**, we obtained:
+
+- **Residual Deviance**: `74,160`
+- **Degrees of Freedom**: `7,030`
+- **Dispersion Parameter**: `10.55`
+
+**Interpretation**
+- Since the dispersion parameter **(10.55)** is **significantly greater than 1**, this indicates **strong overdispersion**.
+- This suggests that the **Poisson model underestimates variability**, making it **not the best fit** for the data.
+
+### **Solution: Quasi-Poisson Model**
+To address overdispersion, we proceed with a **Quasi-Poisson model**, which adjusts the standard errors to provide more reliable estimates.
+
+
+## Quasi-Poisson Model
+
+Since the **Poisson model showed significant overdispersion**, we use a **Quasi-Poisson model** to correct for underestimated standard errors. The **Quasi-Poisson model** allows for variability greater than the mean, providing more reliable coefficient estimates.
+
+```{r Quasi-Poisson-Model, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
+# Fit Quasi-Poisson Model
+glm_quasi <- glm(tenure ~ InternetService + Contract + PaymentMethod + 
+                   StreamingTV + StreamingMovies + SeniorCitizen + Partner + 
+                   log(MonthlyCharges), 
+                 family = quasipoisson(link = "log"), 
                  data = d.cleaned_telecom_customer_churn)
+
+# Display model summary
 summary(glm_quasi)
+
 ```
 
-**Model Performance**
 
-1.  Dispersion Parameter:
-    -   The dispersion parameter for the quasi-Poisson model is **3.99**, confirming overdispersion (variance \> mean).
-    -   This indicates that the quasi-Poisson model is better suited for this dataset compared to the Poisson model.
-2.  Residual Deviance:
-    -   **Residual Deviance**: 31,910 (on 7,019 degrees of freedom), consistent with the Poisson model.
-    -   This shows that the fit remains the same, but the quasi-Poisson model adjusts the standard errors for overdispersion, leading to more reliable p-values.
+## Quasi-Poisson Model Interpretation
 
-**Insights**
+| **Predictor** | **Effect on Log(Tenure)** | **Interpretation** |
+| --- | --- | --- |
+| **Internet Service (Fiber Optic)** | `-0.124` (**↓11.6% tenure**) |
+| **Internet Service (No Service)** | `+0.509` (**↑66.4% tenure**) |
+| **Contract (One Year)** | `+0.731` (**↑107.7% tenure**) | 
+| **Contract (Two Year)** | `+0.970` (**↑164.4% tenure**) | 
+| **Payment Method (Credit Card - Automatic)** | `
+| **Payment Method (Electronic Check)** | `-0.157` (**↓14.5% tenure**) | 
+| **Payment Method (Mailed Check)** | `-0.362` (**↓30.4% tenure**) | 
+| **Senior Citizen** | `+0.118` (**↑12.5% tenure**) |
+| **Partner (Yes)** | `+0.236` (**↑26.6% tenure**) | 
+| **Log(Monthly Charges)** | `+0.615` (**↑84.9% tenure per unit increase**) | 
 
-1.  Interaction Terms are Significant:
-    -   Significant interaction effects for **Internet Service x Contract** and **Payment Method x Contract** highlight the importance of combining these factors to predict tenure effectively.
-2.  Adjusted Standard Errors:
-    -   Quasi-Poisson correction adjusts the standard errors, resulting in more reliable significance levels compared to the Poisson model.
-3.  Non-Significant Predictors:
-    -   **Streaming Services** and **Credit card (automatic)** are not significant, suggesting they may not strongly impact tenure.
+: **Coefficient for the Quasi-Poisson model**.
 
-### Business Insights and Recommendations
+---
+**Interpretation**
+-  Customers with **Fiber optic internet** have **11.6% shorter tenure** compared to DSL users. 
+- Customers with **no internet service** have **66.4% longer tenure** than DSL users.
+- Customers with a **one-year contract stay 107.7% longer** than those on **month-to-month contracts**
+- Customers with a **two-year contract stay 164.4% longer**, highlighting **strong retention** for long-term contracts.
+- Customers paying via **electronic check** have **14.5% shorter tenure**, suggesting potential churn risks. |
+- Customers using **mailed checks** have **30.4% shorter tenure**, indicating **high churn risk**. 
+-  Senior citizens tend to stay **12.5% longer** than younger customers.
+-  Customers **with partners** stay **26.6% longer**, indicating stability in tenure. 
+- **Higher monthly charges** are associated with **longer tenure**, possibly due to bundled services. |
 
-1.  **Encourage Long-Term Contracts**:
-    -   Promote One-year and Two-year contracts, particularly for customers with **No Internet Service**, to boost retention.
-2.  **Optimize Internet Service Offerings**:
-    -   Address potential dissatisfaction among **Fiber optic** customers by enhancing service quality or offering competitive pricing.
-    -   Bundling internet services with contracts can significantly improve tenure.
-3.  **Reevaluate Payment Methods**:
-    -   Reduce reliance on **Mailed checks**, as they correlate with shorter tenure.
-    -   Incentivize automatic payments to retain customers longer.
-4.  **Pricing Sensitivity**:
-    -   Monitor **Monthly Charges** closely and consider pricing strategies or discounts to improve retention among price-sensitive customers.
 
-Customer **tenure** is strongly influenced by contract type, internet service, and payment methods, with significant interaction effects between these factors. Long-term contracts and bundled internet services emerge as the most effective strategies to enhance customer retention.
+
+
+### **Key Takeaways**
+- **Contract type remains the strongest predictor** of customer retention.
+- **Higher-paying customers** tend to stay longer.
+- **Payment method influences tenure**: Customers using **mailed checks churn much faster**.
+- **Internet service impacts tenure in unexpected ways**: Customers without internet **stay longer**.
+
+
+
+
 
 \newpage
 
