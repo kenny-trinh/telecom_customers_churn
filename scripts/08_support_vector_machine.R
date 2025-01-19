@@ -22,6 +22,7 @@ trainIndex <- createDataPartition(data$Churn, p = 0.8, list = FALSE)
 trainData <- data[trainIndex, ]
 testData <- data[-trainIndex, ]
 
+# ------------------ INITIAL SVM MODEL ------------------
 # Train the SVM model
 svm_model <- svm(Churn ~ ., data = trainData, kernel = "radial", cost = 1, 
                  gamma = 0.1)
@@ -29,28 +30,53 @@ svm_model <- svm(Churn ~ ., data = trainData, kernel = "radial", cost = 1,
 # Make predictions on the test data
 predictions <- predict(svm_model, testData)
 
-# Evaluate the model
+# Evaluate the initial model
+cat("\nConfusion Matrix for Initial SVM Model:\n")
 confusionMatrix(predictions, testData$Churn)
 
-# Tune the SVM model for optimal hyperparameters
-set.seed(123)
-tuned_parameters <- tune(svm, Churn ~ ., data = trainData, 
-                         ranges = list(cost = c(0.1, 1, 10), 
-                                       gamma = c(0.01, 0.1, 1)))
+# Paths to save tuned model and parameters
+tuned_model_path <- "output/svm_tuned_model.rds"
+tuned_params_path <- "output/svm_tuned_parameters.rds"
 
-# Best model
-best_model <- tuned_parameters$best.model
+# ------------------ TUNED SVM MODEL ------------------
+# Tune the SVM model for optimal hyperparameters or load if already saved
+set.seed(123)
+if (!file.exists(tuned_model_path) || !file.exists(tuned_params_path)) {
+  cat("\nTuning SVM Model...\n")
+  tuned_parameters <- tune(svm, Churn ~ ., data = trainData,
+                           ranges = list(cost = c(0.1, 1, 10), 
+                                         gamma = c(0.01, 0.1, 1)),
+                           probability = TRUE)
+  best_model <- tuned_parameters$best.model
+  saveRDS(best_model, tuned_model_path)
+  saveRDS(tuned_parameters, tuned_params_path)
+} else {
+  cat("\nLoading Tuned SVM Model...\n")
+  best_model <- readRDS(tuned_model_path)
+  tuned_parameters <- readRDS(tuned_params_path)
+}
 
 # Make predictions with the best model
-best_predictions <- predict(best_model, testData)
+best_predictions <- predict(best_model, testData, probability = TRUE)
 
 # Evaluate the best model
-confusionMatrix(best_predictions, testData$Churn)
+cat("\nConfusion Matrix for Tuned SVM Model:\n")
+conf_matrix <- confusionMatrix(best_predictions, testData$Churn)
+print(conf_matrix)
 
+# Extract probabilities
+probabilities <- attr(predict(best_model, testData, probability = TRUE), "probabilities")
+
+# ------------------ BEST PARAMETERS ------------------
 # Check the best parameters chosen during tuning
-best_parameters <- tuned_parameters$best.parameters
-print(best_parameters)
+cat("\nBest Parameters Chosen During Tuning:\n")
+print(tuned_parameters$best.parameters)
 
+# ------------------ PROBABILITIES ------------------
+# Extract probabilities
+probabilities <- attr(best_predictions, "probabilities")
+cat("\nSample of Predicted Probabilities:\n")
+print(head(probabilities))  # Display a sample of probabilities
 
 # ---Evaluate additional metrics for the tuned model---
 # Ensure the predicted and actual values are factors
@@ -92,44 +118,9 @@ auc_value <- auc(roc_curve)
 cat("Corrected AUC:", auc_value, "\n")
 
 
-# ---Extracting Churn Probabilities---
-
-# Train the SVM model with probability estimates enabled
-svm_model <- svm(Churn ~ ., data = trainData, kernel = "radial", 
-                 cost = 1, gamma = 0.1, probability = TRUE)
-
-# Tune the SVM model with probability
-# tuned_parameters <- tune(svm, Churn ~ ., data = trainData,
-#                          ranges = list(cost = c(0.1, 1, 10), 
-#                                        gamma = c(0.01, 0.1, 1)),
-#                          probability = TRUE)
-
-# run with best parameters cost 10 and gamma 0.1 instead of tuning it again
-tuned_parameters <- tune(svm, Churn ~ ., data = trainData,
-                         ranges = list(cost = 10, 
-                                       gamma = 0.1),
-                         probability = TRUE)
-
-# Best model with probabilities
-best_model <- tuned_parameters$best.model
-
-
-# Check the best parameters chosen during tuning
-best_parameters <- tuned_parameters$best.parameters
-print(best_parameters)
-
-
-# Predict churn probabilities using the best model
-probabilities <- predict(best_model, testData, probability = TRUE)
-
-# Extract probabilities
-probabilities_df <- attr(probabilities, "probabilities")
-head(probabilities_df)  # View predicted probabilities for both classes
-
-
 # ---Segmenting Customers Based on Risk Levels---
 # Add churn probabilities and predicted class to the test data
-testData$Churn_Prob <- probabilities_df[, "Yes"]
+testData$Churn_Prob <- probabilities[, "Yes"]
 testData$Risk_Group <- cut(testData$Churn_Prob, 
                            breaks = c(0, 0.3, 0.7, 1),
                            labels = c("Low Risk", "Medium Risk", "High Risk"))
