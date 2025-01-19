@@ -324,19 +324,19 @@ In our analysis, we employed the following machine learning approaches:
 # Linear Model (LM)
 *Sabin Pun took the lead on the linear model.*
 
-To address **TeleConnect’s price sensitivity challenge**, we began by building a **Linear Model (LM)** to analyze the factors influencing **MonthlyCharges**, the amount customers pay per month. Understanding what drives these charges provides crucial insights into how TeleConnect can design competitive pricing strategies and service bundles.
+To address **TeleConnect’s price sensitivity challenge**, we began by building a **Linear Model (LM)** to understand the key drivers of MonthlyCharges, we first build a Linear Model (LM) as a baseline approach. This helps TeleConnect analyze the impact of various customer attributes on pricing and service bundling
 
 The response variable for this linear model is:
 
 -   **MonthlyCharges**: The amount customers pay per month(continuous)
 
 The predictors used are:
-
-1.  **Contract:** Type of contract( Month to Month, one year, two year)
-2.  **InternetService**: Type of internet service (DSL, Fiber optic, No internet service).
-3.  **StreamingTV**: Whether customers have streaming TV services (Yes/No).
-4.  **PhoneService**: Whether customers have a phone service (Yes/No).
-5.  **MultipleLines**: Whether customers have multiple phone lines (Yes/No).
+1.  **Tenure**: Number of months the customer has been with the company.
+2.  **Contract:** Type of contract( Month to Month, one year, two year)
+3.  **InternetService**: Type of internet service (DSL, Fiber optic, No internet service).
+4.  **StreamingTV**: Whether customers have streaming TV services (Yes/No).
+5.  **PhoneService**: Whether customers have a phone service (Yes/No).
+6.  **MultipleLines**: Whether customers have multiple phone lines (Yes/No).
 
 Linear Model to predict monthly charges:
 
@@ -364,98 +364,51 @@ summary(lm_initial)
 
 **Coefficient Interpretation**:
 
--   InternetService has the largest impact:
-    -   Fiber optic: +0.347 ($\approx$ 41.5% increase in charges)
-    -   No service: -0.863 ($\approx$ 57.8% decrease in charges)
--   Contract Two year: +0.0882($\approx$ 9.2%) significant effect
--   PhoneService: +0.439 ($\approx$ 55.1% increase)
--   Streaming services both have similar effects (about 15%)
--   Extremely low p-value (\< 2.2e-16), indicating the model is significant
+| **Predictor** | **Effect on Log(Monthly Charges)** | **Interpretation** |
+| --- | --- | --- |
+| **Tenure** | `+0.00064` per month | Longer tenure leads to slightly higher monthly charges. |
+| **Internet Service (Fiber Optic)** | `+0.347` (**+41.5%**) | Customers with fiber optic internet pay **41.5% more** than DSL users. |
+| **Internet Service (No Service)** | `-0.863` (**-57.8%**) | Customers with **no internet service** pay **57.8% less** than DSL users. |
+| **Contract (Two Years)** | `+0.00882` (**+9.2%**) | Two-year contracts **increase monthly charges by ~9.2%**. |
+| **Additional Services (Streaming, Security, Backup, Tech Support, Device Protection, Phone Service)** | **Increase charges by 6% - 55%** | Customers with **one or more additional services pay significantly more**, with Phone Service having the biggest impact (~55%). |
+ 
+: Coefficient interpretation for the linear model
+
 
 ## Visualizing the main effects
 
-**Monthly Charges against Tenure:**
-
-```{r LM-Visualizations, echo=FALSE, results='show', cache=TRUE}
-# Effect of Internet Service with smoother
-ggplot(d.cleaned_telecom_customer_churn, 
-       aes(x = tenure, y = log(MonthlyCharges), color = InternetService)) +
-  geom_point(alpha = 0.3) +
-  geom_smooth(method = "loess", se = TRUE) +
-  theme_minimal() +
-  labs(title = "Log Monthly Charges vs Tenure by Internet Service",
-       x = "Tenure (months)",
-       y = "Log Monthly Charges")
-```
-
--   Fiber optic shows a steeper increase with tenure
--   DSL shows a moderate increase
--   No internet service stays flat
-
+**Monthly Charges against Tenure:**/ 
 **Monthly Charges vs Tenure:**
 
-```{r LM-Visualizations2, echo=FALSE, results='show', cache=TRUE}
-# Effect of Contract with smoother
-ggplot(d.cleaned_telecom_customer_churn, 
-       aes(x = tenure, y = log(MonthlyCharges), color = Contract)) +
-  geom_point(alpha = 0.3) +
-  geom_smooth(method = "loess", se = TRUE) +
+```{r LM-Visualizations, echo=FALSE, results='show', cache=TRUE}
+# Plot 1: Log Monthly Charges vs Tenure by Internet Service
+plot1 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = log(MonthlyCharges), color = InternetService)) +
+  geom_point(alpha = 0.4) + 
+  geom_smooth(method = "loess", se = TRUE) + 
   theme_minimal() +
-  labs(title = "Log Monthly Charges vs Tenure by Contract",
-       x = "Tenure (months)",
-       y = "Log Monthly Charges")
+  labs(title = "Log Monthly Charges vs Tenure by Internet Service",
+       x = "Tenure (months)", y = "Log Monthly Charges")
+
+# Plot 2: Log Monthly Charges vs Tenure by Contract Type
+plot2 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = log(MonthlyCharges), color = Contract)) +
+  geom_point(alpha = 0.4) + 
+  geom_smooth(method = "loess", se = TRUE) + 
+  theme_minimal() +
+  labs(title = "Log Monthly Charges vs Tenure by Contract Type",
+       x = "Tenure (months)", y = "Log Monthly Charges")
+
+# Arrange plots in grid view
+grid.arrange(plot1, plot2, ncol = 2)
 ```
 
-## Enhancing the models with interactions:
+**Limitations of the Linear Model** 
+While the linear model provides useful insights, it assumes a strictly linear relationship between features and Monthly Charges. However, as observed, some results—such as contract type pricing—contradict expectations.The visualizations indicate non-linear relationships between Tenure and Log Monthly Charges. This suggests that contract pricing follows a non-linear trend, which cannot be captured effectively by a simple linear model
 
-```{r LM-Interactions, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
-# Enhanced model with interactions
-lm_enhanced <- lm(log(MonthlyCharges) ~ 
-                    tenure * InternetService +    # Add interaction with tenure
-                    tenure * Contract +           # Add interaction with contract
-                    StreamingTV + StreamingMovies + 
-                    OnlineSecurity + OnlineBackup + 
-                    DeviceProtection + TechSupport + 
-                    PhoneService,
-                  data = d.cleaned_telecom_customer_churn)
+- Contract types & internet services exhibit distinct trends, suggesting interactions that LM cannot fully capture.
+- LOESS smoothers in the plots show curved trends, implying that a Generalized Additive Model (GAM) or non-linear methods (SVM, Neural Networks) might be better suited.
 
-summary(lm_enhanced)
-```
+Therefore, while LM helps interpret key relationships, we move forward with GLMs, GAMs, and advanced models to improve predictive accuracy.
 
-## Model Summary
-
-Our model explains 98.82% of the variability in monthly charges, showing strong predictive power. The key factors affecting monthly charges are:
-
--   **Internet Service Type**:
-    -   Fiber optic: +41.7%
-    -   No internet: -57.2%
--   **Contract Type**:
-    -   One-year: +1.1%
-    -   Two-year: +3.8%
--   **Additional Services**:
-    -   Streaming (TV or Movies): +15.3% each
-    -   Phone Service: +15.1%
-    -   Security/Support services: +7.5% each
-
-## Model Comparison
-
-Initial Model: R-squared = 0.9865 Enhanced Model: R-squared = 0.9882 Improvement: 0.0017 (only about 0.17%)
-
-This small improvement suggests that:
-
-1.  The simpler model (without interactions) might be preferable due to:
-    -   Easier interpretation
-    -   Greater parsimony (fewer parameters)
-    -   Nearly identical predictive power (98.65% vs 98.82%)
-
-## Business Value and Insights for Teleconnet
-
-1.  **Internet Service is the Primary Revenue Driver**:
-    -   **Value**: Internet service type (e.g., Fiber optic) has the largest impact on monthly charges, making it the most critical factor for revenue growth.
-2.  **Contract Type Has Limited Revenue Impact**:
-    -   **Value**: Customers pay similar monthly charges regardless of contract type.
-3.  **Add-On Services Boost Revenue Incrementally**:
-    -   **Value**: Services like Streaming, Security, and Tech Support add 6-14% to monthly charges, providing consistent opportunities for revenue growth.
 
 # GLM-Poisson Model
 *Sabin Pun took the lead on the GLM-Poisson model.*
