@@ -19,8 +19,6 @@ Contains the datasets used in the analysis.
   - `svm_tuned_model.rds`: Tuned Support Vector Machine (SVM) model saved as an RDS file.
   - `svm_tuned_parameters.rds`: Parameters used for tuning the SVM model.
 
-> **Note**: The raw dataset was sourced from [source website or company], while the cleaned dataset includes preprocessing steps described in the `01_data_cleaning.R` script.
-
 ### `/scripts`
 Contains all R scripts used in the data analysis pipeline. The scripts are named and organized to reflect the workflow:
 
