@@ -1,53 +1,32 @@
 # Load required libraries
 library(ggplot2)
+library(gridExtra)
 
-# Initial linear model with all relevant predictors
-lm_initial <- lm(log(MonthlyCharges) ~ 
-                   tenure + 
-                   InternetService + 
-                   Contract + 
-                   StreamingTV + 
-                   StreamingMovies +
-                   OnlineSecurity +
-                   OnlineBackup +
-                   DeviceProtection +
-                   TechSupport +
-                   PhoneService,
-                 data = d.cleaned_telecom_customer_churn)
+lm_model <- lm(log(MonthlyCharges) ~ tenure + InternetService + Contract + 
+                 StreamingTV + StreamingMovies + OnlineSecurity + 
+                 OnlineBackup + DeviceProtection + TechSupport + PhoneService, 
+               data = d.cleaned_telecom_customer_churn)
 
-# Get model summary
-summary(lm_initial)
+summary(lm_model)
 
 
-# Effect of Internet Service with smoother
-ggplot(d.cleaned_telecom_customer_churn, 
-       aes(x = tenure, y = log(MonthlyCharges), color = InternetService)) +
-  geom_point(alpha = 0.3) +
-  geom_smooth(method = "loess", se = TRUE) +
+# Plot 1: Log Monthly Charges vs Tenure by Internet Service
+plot1 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = log(MonthlyCharges), color = InternetService)) +
+  geom_point(alpha = 0.4) + 
+  geom_smooth(method = "loess", se = TRUE) + 
   theme_minimal() +
   labs(title = "Log Monthly Charges vs Tenure by Internet Service",
-       x = "Tenure (months)",
-       y = "Log Monthly Charges")
+       x = "Tenure (months)", y = "Log Monthly Charges")
 
-
-# Effect of Contract with smoother
-ggplot(d.cleaned_telecom_customer_churn, 
-       aes(x = tenure, y = log(MonthlyCharges), color = Contract)) +
-  geom_point(alpha = 0.3) +
-  geom_smooth(method = "loess", se = TRUE) +
+# Plot 2: Log Monthly Charges vs Tenure by Contract Type
+plot2 <- ggplot(d.cleaned_telecom_customer_churn, aes(x = tenure, y = log(MonthlyCharges), color = Contract)) +
+  geom_point(alpha = 0.4) + 
+  geom_smooth(method = "loess", se = TRUE) + 
   theme_minimal() +
-  labs(title = "Log Monthly Charges vs Tenure by Contract",
-       x = "Tenure (months)",
-       y = "Log Monthly Charges")
+  labs(title = "Log Monthly Charges vs Tenure by Contract Type",
+       x = "Tenure (months)", y = "Log Monthly Charges")
 
-# Enhanced model with interactions
-lm_enhanced <- lm(log(MonthlyCharges) ~ 
-                    tenure * InternetService +    # Add interaction with tenure
-                    tenure * Contract +           # Add interaction with contract
-                    StreamingTV + StreamingMovies + 
-                    OnlineSecurity + OnlineBackup + 
-                    DeviceProtection + TechSupport + 
-                    PhoneService,
-                  data = d.cleaned_telecom_customer_churn)
+# Arrange plots in grid view
+grid.arrange(plot1, plot2, ncol = 2)
 
-summary(lm_enhanced)
+
