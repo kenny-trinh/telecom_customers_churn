@@ -31,7 +31,6 @@ required_packages <- c(
   'pROC',
   'ggplot2',
   'corrplot',
-  'RSNNS',
   'e1071',
   'mgcv',
   'gridExtra',
@@ -878,7 +877,6 @@ library(nnet)
 library(pROC)
 library(ggplot2)
 library(dplyr)
-library(RSNNS)
 
 # Load the cleaned dataset
 data <- read_csv(
@@ -971,7 +969,7 @@ The data is prepared for the Neural Network model by splitting it into training 
 ### Training with an optimal configuration
 
 ```{r NN-TrainNN, echo=FALSE, results='hide', message=FALSE, warning=FALSE, cache=TRUE}
-# Train the Neural Network
+#--- Train the Neural Network ---
 nn_model <- nnet(
   Churn ~ ., data = trainData,
   size = 2, decay = 0.04, maxit = 300, trace = FALSE
@@ -988,7 +986,8 @@ A Neural Network is trained with 2 hidden neurons (size) and a regularization pa
 ```{r NN-EvaluateModel, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 library(caret)
 library(pROC)
-# Evaluate the model
+
+#--- Evaluate the model ---
 # Generate predictions (binary classification at 0.5 threshold)
 nn_pred <- as.factor(ifelse(nn_prob > 0.5, 1, 0))
 testData$Churn <- as.factor(testData$Churn)
@@ -1060,6 +1059,8 @@ The Neural Network ROC Curve provides a visual representation of the trade-off b
 
 ```{r NN-ThresholdAdjustment, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
 library(pROC)
+
+#--- Adjusting the Threshold ---
 
 # Adjust the threshold to improve specificity
 threshold <- 0.54  # Adjust to a higher value to improve specificity
@@ -1158,144 +1159,28 @@ plot(nn_roc_resampled, col = "blue",
 auc_resampled <- auc(nn_roc_resampled)
 cat("Neural Network AUC (Resampled Data):", auc_resampled, "\n")
 ```
+**Key Insights:**
 
-## Neural Network with RSNNS
+- **Resampling with Weight Ratio:**
+	- By assigning higher weights to the minority class (`Churn = 1`), the code addresses the class imbalance issue effectively.
+	- This method ensures the model is exposed to more churn cases during training, improving sensitivity.
 
-```{r NN-RSNNS, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
-# Convert categorical variables to dummy variables
-train_data_numeric <- model.matrix(~ . - 1, data = trainData[, -which(names(trainData) == "Churn")])  # Remove intercept
-test_data_numeric <- model.matrix(~ . - 1, data = testData[, -which(names(testData) == "Churn")])    # Remove intercept
+- **Neural Network Configuration:**
+	- The chosen neural network parameters (`size = 2`, `decay = 0.04`) align with earlier findings that this configuration provides a good balance between complexity and performance.
 
-# Ensure the labels are numeric binary
-train_labels <- as.numeric(trainData$Churn) - 1
-test_labels <- as.numeric(testData$Churn) - 1
+- **Confusion Matrix and Metrics:**
+	- **Accuracy:** `0.8095` is consistent with earlier models and validates the effectiveness of the resampling technique.
+	- **Sensitivity:** `0.9033` indicates the model performs well in identifying churners.
+	- **Specificity:** `0.5496` suggests room for improvement in correctly identifying non-churners.
+	- **Balanced Accuracy:** `0.7264` reflects a robust balance between sensitivity and specificity.
 
+- **ROC Curve and AUC:**
+	- The ROC curve for resampled data (`AUC = 0.8424`) visually confirms the model's ability to distinguish churners from non-churners effectively.
+	- The blue ROC curve in the screenshot demonstrates significant improvement over random guessing, staying well above the diagonal line.
 
-# Train the neural network with 2 hidden layers and adjusted neurons
-nn_model_adjusted <- mlp(
-  x = train_data_numeric, y = train_labels,
-  size = c(10, 5),   # Two hidden layers: 10 neurons in the first, 5 in the second
-  maxit = 300,
-  learnFuncParams = c(0.1),  # Learning rate
-  hiddenActFunc = "Act_Logistic"  # Default logistic activation function
-)
-
-# Predict on the test data
-nn_pred_adjusted <- predict(nn_model_adjusted, test_data_numeric)
-nn_pred_class <- as.factor(ifelse(nn_pred_adjusted > 0.5, 1, 0))
-
-# Evaluate the model
-conf_matrix_adjusted <- confusionMatrix(nn_pred_class, as.factor(test_labels))
-print(conf_matrix_adjusted)
-
-# Extract values from the confusion matrix
-confusion_matrix <- table(test_labels, nn_pred_class)
-
-TP <- confusion_matrix[2, 2]  # True Positives
-FN <- confusion_matrix[2, 1]  # False Negatives
-FP <- confusion_matrix[1, 2]  # False Positives
-TN <- confusion_matrix[1, 1]  # True Negatives
-
-# Calculate the metrics
-accuracy <- (TP + TN) / (TP + TN + FP + FN)
-sensitivity <- TP / (TP + FN)  # Recall
-specificity <- TN / (TN + FP)
-precision <- TP / (TP + FP)
-
-# Print the metrics
-cat("Accuracy:", round(accuracy, 4), "\n")
-cat("Sensitivity (Recall):", round(sensitivity, 4), "\n")
-cat("Specificity:", round(specificity, 4), "\n")
-cat("Precision:", round(precision, 4), "\n")
-```
-
-## Neural Network with RSNNS: Trying Alternative Activation Functions
-
-```{r NN-Conclusion, echo=FALSE, results='asis', message=FALSE, warning=FALSE, cache=TRUE}
-# Convert categorical variables to dummy variables
-train_data_numeric <- model.matrix(~ . - 1, data = trainData[, -which(names(trainData) == "Churn")])  # Remove intercept
-test_data_numeric <- model.matrix(~ . - 1, data = testData[, -which(names(trainData) == "Churn")])    # Remove intercept
-
-# Ensure the labels are numeric binary
-train_labels <- as.numeric(trainData$Churn) - 1
-test_labels <- as.numeric(testData$Churn) - 1
-
-# Experiment with Act_TanH activation function
-nn_model_tanh <- mlp(
-  x = train_data_numeric, 
-  y = train_labels,
-  size = c(10, 5),   # Two hidden layers: 10 neurons in the first, 5 in the second
-  maxit = 300,
-  learnFuncParams = c(0.1),  # Learning rate
-  hiddenActFunc = "Act_TanH"  # Tanh activation function
-)
-
-# Predict and evaluate for Act_TanH
-nn_pred_tanh <- predict(nn_model_tanh, test_data_numeric)
-nn_pred_class_tanh <- as.factor(ifelse(nn_pred_tanh > 0.5, 1, 0))
-conf_matrix_tanh <- confusionMatrix(nn_pred_class_tanh, as.factor(test_labels))
-print("Confusion Matrix (Act_TanH):")
-print(conf_matrix_tanh)
-
-# Experiment with Act_ReLU activation function
-nn_model_relu <- mlp(
-  x = train_data_numeric, 
-  y = train_labels,
-  size = c(10, 5),   # Two hidden layers: 10 neurons in the first, 5 in the second
-  maxit = 300,
-  learnFuncParams = c(0.1),  # Learning rate
-  hiddenActFunc = "Act_ReLU"  # ReLU activation function
-)
-
-# Predict and evaluate for Act_ReLU
-nn_pred_relu <- predict(nn_model_relu, test_data_numeric)
-nn_pred_class_relu <- as.factor(ifelse(nn_pred_relu > 0.5, 1, 0))
-conf_matrix_relu <- confusionMatrix(nn_pred_class_relu, as.factor(test_labels))
-print("Confusion Matrix (Act_ReLU):")
-print(conf_matrix_relu)
-
-
-# Extract values from the confusion matrix for Act_TanH
-confusion_matrix_tanh <- table(test_labels, nn_pred_class_tanh)
-TP_tanh <- confusion_matrix_tanh[2, 2]  # True Positives
-FN_tanh <- confusion_matrix_tanh[2, 1]  # False Negatives
-FP_tanh <- confusion_matrix_tanh[1, 2]  # False Positives
-TN_tanh <- confusion_matrix_tanh[1, 1]  # True Negatives
-
-# Calculate metrics for Act_TanH
-accuracy_tanh <- (TP_tanh + TN_tanh) / sum(confusion_matrix_tanh)
-sensitivity_tanh <- TP_tanh / (TP_tanh + FN_tanh)  # Recall
-specificity_tanh <- TN_tanh / (TN_tanh + FP_tanh)
-precision_tanh <- TP_tanh / (TP_tanh + FP_tanh)
-
-# Print metrics for Act_TanH
-cat("Metrics for Act_TanH:\n")
-cat("Accuracy:", round(accuracy_tanh, 4), "\n")
-cat("Sensitivity (Recall):", round(sensitivity_tanh, 4), "\n")
-cat("Specificity:", round(specificity_tanh, 4), "\n")
-cat("Precision:", round(precision_tanh, 4), "\n\n")
-
-# Extract values from the confusion matrix for Act_ReLU
-confusion_matrix_relu <- table(test_labels, nn_pred_class_relu)
-TP_relu <- confusion_matrix_relu[2, 2]  # True Positives
-FN_relu <- confusion_matrix_relu[2, 1]  # False Negatives
-FP_relu <- confusion_matrix_relu[1, 2]  # False Positives
-TN_relu <- confusion_matrix_relu[1, 1]  # True Negatives
-
-# Calculate metrics for Act_ReLU
-accuracy_relu <- (TP_relu + TN_relu) / sum(confusion_matrix_relu)
-sensitivity_relu <- TP_relu / (TP_relu + FN_relu)  # Recall
-specificity_relu <- TN_relu / (TN_relu + FP_relu)
-precision_relu <- TP_relu / (TP_relu + FP_relu)
-
-# Print metrics for Act_ReLU
-cat("Metrics for Act_ReLU:\n")
-cat("Accuracy:", round(accuracy_relu, 4), "\n")
-cat("Sensitivity (Recall):", round(sensitivity_relu, 4), "\n")
-cat("Specificity:", round(specificity_relu, 4), "\n")
-cat("Precision:", round(precision_relu, 4), "\n")
-
-```
+- **Business Context:**
+	- High sensitivity aligns with TeleConnect's goal to minimize churn by identifying most at-risk customers for retention campaigns.
+	- Moderate specificity can be addressed by refining the model further or combining it with additional models like SVM or decision trees for ensemble methods.
 
 ## Neural Network with Regularization and Adjusted Architecture
 
@@ -1344,144 +1229,6 @@ cat("Specificity:", round(specificity, 4), "\n")
 cat("Precision:", round(precision, 4), "\n")
 ```
 
-## Neural Network Experimentation with Different Architectures
-
-```{r NN-ExperimentationWithDifferentArchitectures, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
-library(RSNNS)
-library(ggplot2)
-
-# Define a list of architectures to test
-architectures <- list(
-  c(20, 10, 5),
-  c(10, 5),
-  c(25, 15, 10)
-)
-
-# Initialize a data frame to store results
-architecture_results <- data.frame(
-  Architecture = character(),
-  Accuracy = numeric(),
-  Sensitivity = numeric(),
-  Specificity = numeric(),
-  Precision = numeric()
-)
-
-# Loop through each architecture
-for (arch in architectures) {
-  cat("Testing architecture:", paste(arch, collapse = "-"), "\n")
-  
-  # Train the model with the given architecture
-  nn_model <- RSNNS::mlp(
-    x = train_data_numeric, 
-    y = train_labels,
-    size = arch,  # Set architecture
-    maxit = 300,
-    learnFuncParams = c(0.1, 0.001),  # Learning rate and L2 regularization
-    hiddenActFunc = "Act_Logistic"  # Activation function
-  )
-  
-  # Predict on the test data
-  nn_pred <- predict(nn_model, test_data_numeric)
-  nn_pred_class <- as.factor(ifelse(nn_pred > 0.5, 1, 0))
-  
-  # Confusion matrix and metrics
-  confusion_matrix <- table(test_labels, nn_pred_class)
-  TP <- confusion_matrix[2, 2]
-  FN <- confusion_matrix[2, 1]
-  FP <- confusion_matrix[1, 2]
-  TN <- confusion_matrix[1, 1]
-  
-  accuracy <- (TP + TN) / sum(confusion_matrix)
-  sensitivity <- TP / (TP + FN)  # Recall
-  specificity <- TN / (TN + FP)
-  precision <- TP / (TP + FP)
-  
-  # Store results
-  architecture_results <- rbind(
-    architecture_results,
-    data.frame(
-      Architecture = paste(arch, collapse = "-"),
-      Accuracy = round(accuracy, 4),
-      Sensitivity = round(sensitivity, 4),
-      Specificity = round(specificity, 4),
-      Precision = round(precision, 4)
-    )
-  )
-}
-
-# Print the results
-print(architecture_results)
-
-# Visualize the results
-ggplot2::ggplot(architecture_results, aes(x = Architecture)) +
-  geom_bar(aes(y = Accuracy), stat = "identity", fill = "steelblue") +
-  geom_point(aes(y = Sensitivity), color = "red", size = 3) +
-  geom_point(aes(y = Specificity), color = "green", size = 3) +
-  geom_point(aes(y = Precision), color = "purple", size = 3) +
-  labs(title = "Performance Metrics by Architecture", x = "Architecture", y = "Metrics") +
-  theme_minimal()
-```
-
-```{r NN-AddingDropoutRegularization, echo=FALSE, results='show', message=FALSE, warning=FALSE, cache=TRUE}
-nn_model_dropout <- mlp(
-  x = train_data_numeric, 
-  y = train_labels,
-  size = c(20, 10, 5),  # Best architecture identified
-  maxit = 300,
-  learnFuncParams = c(0.05, 0.001),  # Best learning rate and regularization
-  hiddenActFunc = "Act_Logistic",  # Logistic activation
-  dropout = c(0.2, 0.2, 0.2)  # Dropout rates for each hidden layer
-)
-
-# Predict and evaluate
-nn_pred_dropout <- predict(nn_model_dropout, test_data_numeric)
-nn_pred_class_dropout <- as.factor(ifelse(nn_pred_dropout > 0.5, 1, 0))
-conf_matrix_dropout <- confusionMatrix(nn_pred_class_dropout, as.factor(test_labels))
-
-# Extract metrics for comparison
-confusion_matrix_dropout <- table(test_labels, nn_pred_class_dropout)
-TP <- confusion_matrix_dropout[2, 2]
-FN <- confusion_matrix_dropout[2, 1]
-FP <- confusion_matrix_dropout[1, 2]
-TN <- confusion_matrix_dropout[1, 1]
-
-accuracy_dropout <- (TP + TN) / sum(confusion_matrix_dropout)
-sensitivity_dropout <- TP / (TP + FN)
-specificity_dropout <- TN / (TN + FP)
-precision_dropout <- TP / (TP + FP)
-
-# Print results
-cat("Metrics for Neural Network with Dropout Regularization:\n")
-cat("Accuracy:", round(accuracy_dropout, 4), "\n")
-cat("Sensitivity (Recall):", round(sensitivity_dropout, 4), "\n")
-cat("Specificity:", round(specificity_dropout, 4), "\n")
-cat("Precision:", round(precision_dropout, 4), "\n")
-
-
-# Adjust the decision threshold
-threshold <- 0.4  # Example threshold
-nn_pred_class_threshold <- as.factor(ifelse(nn_pred_dropout > threshold, 1, 0))
-
-# Evaluate with adjusted threshold
-conf_matrix_threshold <- confusionMatrix(nn_pred_class_threshold, as.factor(test_labels))
-confusion_matrix_threshold <- table(test_labels, nn_pred_class_threshold)
-TP_thresh <- confusion_matrix_threshold[2, 2]
-FN_thresh <- confusion_matrix_threshold[2, 1]
-FP_thresh <- confusion_matrix_threshold[1, 2]
-TN_thresh <- confusion_matrix_threshold[1, 1]
-
-accuracy_thresh <- (TP_thresh + TN_thresh) / sum(confusion_matrix_threshold)
-sensitivity_thresh <- TP_thresh / (TP_thresh + FN_thresh)
-specificity_thresh <- TN_thresh / (TN_thresh + FP_thresh)
-precision_thresh <- TP_thresh / (TP_thresh + FP_thresh)
-
-# Print adjusted metrics
-cat("Metrics with Adjusted Threshold (", threshold, "):\n", sep = "")
-cat("Accuracy:", round(accuracy_thresh, 4), "\n")
-cat("Sensitivity (Recall):", round(sensitivity_thresh, 4), "\n")
-cat("Specificity:", round(specificity_thresh, 4), "\n")
-cat("Precision:", round(precision_thresh, 4), "\n")
-```
 
 ## Threshold Analysis and Visualization
 
